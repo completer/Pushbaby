@@ -3,12 +3,19 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using Pushak.Shared;
+using log4net;
 
 namespace Pushak.Server
 {
     public class SessionFactory
     {
+        readonly ILog log;
         readonly ConcurrentDictionary<string, Session> sessions = new ConcurrentDictionary<string, Session>();
+
+        public SessionFactory(ILog log)
+        {
+            this.log = log;
+        }
 
         public Session Get(HttpListenerContext context)
         {

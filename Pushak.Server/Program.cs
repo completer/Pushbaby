@@ -7,7 +7,9 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Pushak.Server.Logging;
 using Pushak.Shared;
+using log4net;
 
 namespace Pushak.Server
 {
@@ -17,18 +19,21 @@ namespace Pushak.Server
 
         static void Main()
         {
+            Log4NetConfiguration.Configure();
+            var log = LogManager.GetLogger(typeof(Program));
+
             using (var listener = new HttpListener())
             {
                 listener.Prefixes.Add("http://*:80/" + ListenerPath + "/");
                 listener.Start();
-                Console.WriteLine("Listening...");
+                log.Info("Server is starting up...");
 
-                var sessionFactory = new SessionFactory();
+                var sessionFactory = new SessionFactory(log);
 
                 while (true)
                 {
-                    var context = listener.GetContext(); // blocks
-                    var handler = new Handler(sessionFactory);
+                    var context = listener.GetContext();
+                    var handler = new Handler(log, sessionFactory);
                     ThreadPool.QueueUserWorkItem(x => handler.Handle(context));
                 }
             }
@@ -37,10 +42,12 @@ namespace Pushak.Server
 
     public class Handler
     {
+        readonly ILog log;
         readonly SessionFactory sessionFactory;
 
-        public Handler(SessionFactory sessionFactory)
+        public Handler(ILog log, SessionFactory sessionFactory)
         {
+            this.log = log;
             this.sessionFactory = sessionFactory;
         }
 
@@ -59,21 +66,23 @@ namespace Pushak.Server
             }
             catch (Exception ex)
             {
+                this.log.Error("Unhandled exception.", ex);
                 context.Response.StatusCode = 500;
-                this.WriteResponse(ex.ToString(), context.Response, session.State);
+                this.WriteResponse("Unhandled exception. See server log.", context.Response, session.State);
             }
         }
 
         public void HandleGreeting(HttpListenerContext context, Session session)
         {
-            Console.WriteLine("Handling greeting for session {0}...", session.Key);
+            this.log.InfoFormat("Handling greeting for session {0}...", session.Key);
+
             this.WriteResponse(session.Key, context.Response, session.State);
             session.State = State.Greeted;
         }
 
         public void HandlePayload(HttpListenerContext context, Session session)
         {
-            Console.WriteLine("Handling payload for session {0}...", session.Key);
+            this.log.InfoFormat("Handling payload for session {0}...", session.Key);
 
             this.SavePayload(context.Request, session);
             ThreadPool.QueueUserWorkItem(x => this.ExecuteBat(session));
@@ -118,7 +127,7 @@ namespace Pushak.Server
 
         public void HandleProgress(HttpListenerContext context, Session session)
         {
-            Console.WriteLine("Handling progress for session {0}...", session.Key);
+            this.log.InfoFormat("Handling progress for session {0}...", session.Key);
 
             if (session.State == State.Executing)
             {

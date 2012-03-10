@@ -13,6 +13,8 @@ namespace Pushak.Client
     {
         static void Main(string[] args)
         {
+            Thread.Sleep(100);
+
             string payload  = args.ElementAt(0);
             string destination = args.ElementAtOrDefault(1) ?? "http://localhost/pushak/";
 
