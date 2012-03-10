@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Pushak.Shared;
 
 namespace Pushak.Server
 {
@@ -22,10 +23,12 @@ namespace Pushak.Server
                 listener.Start();
                 Console.WriteLine("Listening...");
 
+                var sessionFactory = new SessionFactory();
+
                 while (true)
                 {
                     var context = listener.GetContext(); // blocks
-                    var handler = new Handler();
+                    var handler = new Handler(sessionFactory);
                     ThreadPool.QueueUserWorkItem(x => handler.Handle(context));
                 }
             }
@@ -34,45 +37,46 @@ namespace Pushak.Server
 
     public class Handler
     {
+        readonly SessionFactory sessionFactory;
+
+        public Handler(SessionFactory sessionFactory)
+        {
+            this.sessionFactory = sessionFactory;
+        }
+
         public void Handle(HttpListenerContext context)
         {
-            var session = new SessionFactory().Get(context);
+            var session = this.sessionFactory.Get(context);
 
             try
             {
-                if (context.Request.HttpMethod == "POST")
-                    this.HandlePost(context, session);
+                if (context.Request.HttpMethod == "POST" && context.Request.Headers["session"] == null)
+                    this.HandleGreeting(context, session);
+                else if (context.Request.HttpMethod == "POST")
+                    this.HandlePayload(context, session);
                 else
-                    this.HandleGet(context, session);
+                    this.HandleProgress(context, session);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 context.Response.StatusCode = 500;
                 this.WriteResponse(ex.ToString(), context.Response, session.State);
             }
         }
 
-        public class SessionFactory
+        public void HandleGreeting(HttpListenerContext context, Session session)
         {
-            static readonly Session Session = new Session(); // todo
-
-            public Session Get(HttpListenerContext context)
-            {
-                return Session;
-            }
+            Console.WriteLine("Handling greeting for session {0}...", session.Key);
+            this.WriteResponse(session.Key, context.Response, session.State);
+            session.State = State.Greeted;
         }
 
-        public void HandlePost(HttpListenerContext context, Session session)
+        public void HandlePayload(HttpListenerContext context, Session session)
         {
-            Console.WriteLine("Handling POST...");
+            Console.WriteLine("Handling payload for session {0}...", session.Key);
 
-            // save payload
             this.SavePayload(context.Request, session);
-
-            // run the bat file
             ThreadPool.QueueUserWorkItem(x => this.ExecuteBat(session));
-
-            // return ok
             this.WriteResponse("OK", context.Response, session.State);
         }
 
@@ -80,7 +84,7 @@ namespace Pushak.Server
         {
             session.State = State.Uploading;
 
-            // todo: stream to feile
+            // todo: stream to file
             var reader = new StreamReader(request.InputStream);
             string s = reader.ReadToEnd();
 
@@ -112,9 +116,9 @@ namespace Pushak.Server
             session.State = State.Executed;
         }
 
-        public void HandleGet(HttpListenerContext context, Session session)
+        public void HandleProgress(HttpListenerContext context, Session session)
         {
-            Console.WriteLine("Handling GET...");
+            Console.WriteLine("Handling progress for session {0}...", session.Key);
 
             if (session.State == State.Executing)
             {
@@ -123,6 +127,7 @@ namespace Pushak.Server
             else if (session.State == State.Executed)
             {
                 this.WriteResponse(session.ReadBuffer(), context.Response, session.State);
+                this.sessionFactory.Remove(session);
             }
             else
             {
@@ -144,25 +149,5 @@ namespace Pushak.Server
         }
     }
 
-    public class Session
-    {
-        readonly ConcurrentQueue<string> buffer = new ConcurrentQueue<string>();
-
-        public State State { get; set; }
-
-        public void WriteBuffer(string s)
-        {
-            this.buffer.Enqueue("Pushak.Server:: " + s);
-        }
-
-        public string ReadBuffer()
-        {
-            var ss = new List<string>();
-            string s;
-            while (buffer.TryDequeue(out s)) { ss.Add(s); }
-            return String.Join(Environment.NewLine, ss);
-        }
-    }
-
-    public enum State { New = 0, Uploading, Uploaded, Executing, Executed }
+    public enum State { Greeting = 0, Greeted, Uploading, Uploaded, Executing, Executed }
 }
