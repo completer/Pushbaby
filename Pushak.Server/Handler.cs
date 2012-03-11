@@ -74,7 +74,7 @@ namespace Pushak.Server
             }
             else
             {
-                throw new InvalidOperationException("Session ended");
+                throw new InvalidOperationException("Invalid state for session.");
             }
         }
 

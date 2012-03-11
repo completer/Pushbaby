@@ -1,30 +1,26 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using Pushak.Server.Logging;
-using Pushak.Shared;
 using log4net;
 
 namespace Pushak.Server
 {
-    class Program
+    public class Server
     {
         public static readonly string ListenerPath = "pushak";
 
         static void Main()
         {
             Log4NetConfiguration.Configure();
-            var log = LogManager.GetLogger(typeof(Program));
+            var log = LogManager.GetLogger(typeof(Server));
+
+            var settings = new Settings();
+            settings.Validate();
 
             using (var listener = new HttpListener())
             {
-                listener.Prefixes.Add("http://*:80/" + ListenerPath + "/");
+                listener.Prefixes.Add("http://+:80/" + ListenerPath + "/");
                 listener.Start();
                 log.Info("Server is starting up...");
 

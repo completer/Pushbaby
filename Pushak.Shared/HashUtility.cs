@@ -9,16 +9,20 @@ namespace Pushak.Shared
 {
     public static class HashUtility
     {
-        public static string ComputeHash(string payload)
+        public static string ComputeFileHash(string path)
         {
-            using (var stream = File.OpenRead(payload))
+            using (var stream = File.OpenRead(path))
             {
                 var hash = new MD5CryptoServiceProvider().ComputeHash(stream);
-
-                return hash.Aggregate(new StringBuilder(32),
-                    (sb, b) => sb.Append(b.ToString("X2")))
-                    .ToString();
+                return HexUtility.ToString(hash);
             }
+        }
+
+        public static string ComputeStringHash(string s)
+        {
+            var bytes = Encoding.Unicode.GetBytes(s);
+            var hash = new MD5CryptoServiceProvider().ComputeHash(bytes);
+            return HexUtility.ToString(hash);
         }
     }
 }
