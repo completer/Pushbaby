@@ -25,7 +25,7 @@ namespace Pushak.Server
 
             if (key == null)
             {
-                var session = new Session(CryptoUtility.GenerateKey(), DateTime.UtcNow);
+                var session = new Session(CryptoUtility.GenerateKey(), DateTime.UtcNow, this);
                 this.sessions.TryAdd(session.Key, session);
                 return session;
             }
