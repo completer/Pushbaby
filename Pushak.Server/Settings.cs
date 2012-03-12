@@ -21,6 +21,12 @@ namespace Pushak.Server
             get { return ConfigurationManager.AppSettings["ExecutableFile"]; }
         }
 
+        public string UriPrefix
+        {
+            get { return ConfigurationManager.AppSettings["UriPrefix"]; }
+        }
+
+
         public void Validate()
         {
             if (String.IsNullOrWhiteSpace(this.SharedSecret) || this.SharedSecret.Length < 16)

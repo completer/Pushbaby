@@ -9,9 +9,9 @@ namespace Pushak.Server
 {
     public class Server
     {
-        public static readonly string ListenerPath = "pushak";
+        public static readonly string ListenerPath = "";
 
-        static void Main()
+        public static void Main()
         {
             Log4NetConfiguration.Configure();
             var log = LogManager.GetLogger(typeof(Server));
@@ -23,7 +23,7 @@ namespace Pushak.Server
 
             using (var listener = new HttpListener())
             {
-                listener.Prefixes.Add("http://+:80/" + ListenerPath + "/");
+                listener.Prefixes.Add(settings.UriPrefix ?? "http://+:80/pushak/");
                 listener.Start();
                 log.Info("Server is starting up...");
 
