@@ -114,7 +114,7 @@ namespace Pushak.Server
 
             using (var p = new Process { StartInfo = new ProcessStartInfo() })
             {
-                p.StartInfo.FileName = "pushak.bat";
+                p.StartInfo.FileName = this.settings.ExecutableFile;
                 p.StartInfo.UseShellExecute = false;
                 p.StartInfo.RedirectStandardOutput = true;
                 p.OutputDataReceived += (s, e) => session.Write(e.Data);
