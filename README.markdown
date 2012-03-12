@@ -16,7 +16,7 @@ Pushbaby streams output from your deployment script back to your build server.
 How it works
 ------------
 
-Pushbaby is a simple tool for server software deployment.
+Pushbaby is a simple tool for server software deployment on Windows. If you are deploying **more than a single website** or find it a **pain to  connect** to your web server, it might be useful.
 
 1. On the build server, Pushbaby.Client pushes your build output to your destination server(s).
 2. On the destination server, Pushbaby.Service executes your deployment script.
@@ -30,17 +30,17 @@ How to use Pushbaby
 Put the Pushbaby.Client binaries folder on your build server.  
 Put the Pushbaby.Service binaries folder on your destination server(s).
 
-In the service config, set the values:
+In the **service app.config**, set the values:
 
 - `SharedSecret` - an encryption key for secure communication over the network.
 - `DeploymentDirectory` - the path of the directory in which to place the uploaded file.
 - `ExecutableFile` - the path of the file to run when the upload is complete.
 
-If you want multiple Pushbaby services running on the same destination machine, or you just want a non-default URI, you can set the value:
+If you want multiple Pushbaby services running on the same destination machine (or you just want a non-default URI), set the value:
 
-- `UriPrefix` - the URI to listen on. The default value is `http://+:80/pushbaby/`. See [MSDN](http://msdn.microsoft.com/en-us/library/system.net.httplistenerprefixcollection.add.aspx) for more on the http.sys prefix format.
+- `UriPrefix` - the URI to listen on. The default value is `http://+:80/pushbaby/`. See MSDN for the http.sys [prefix format](http://msdn.microsoft.com/en-us/library/system.net.httplistenerprefixcollection.add.aspx).
 
-In the client config, set the value:
+In the **client app.config**, set the value:
 
 - `SharedSecret` - to the same as you used on the server.
 
@@ -48,7 +48,8 @@ To install Pushbaby.Service as a Windows Service
 ------------------------------------------------
 
 Open an Administrator command window.  
-`cd` to the Pushbaby.Service binaries folder.  
+`cd` to the Pushbaby.Service binaries folder.
+
     C:\Windows\Microsoft.NET\Framework\v4.0.30319\installutil Pushbaby.Service.exe
 
 To uninstall use the `/u` switch.
