@@ -17,38 +17,56 @@ namespace Pushak.Shared
             return HexUtility.ToString(bytes);
         }
 
-        public static ICryptoTransform GetEncryptor(string sharedSecret, string session)
+        public static SymmetricAlgorithm GetAlgorithm(string sharedSecret, string session)
         {
-            // make the shared secret a valid length for algorithm
-            string key = HashUtility.ComputeStringHash(sharedSecret);
+            // http://stackoverflow.com/questions/202011/encrypt-decrypt-string-in-net
 
-            var des = new AesCryptoServiceProvider
-                {
-                    Key = HexUtility.ToBytes(key),
-                    IV = HexUtility.ToBytes(session)
-                };
+            if (string.IsNullOrEmpty(sharedSecret))
+                throw new ArgumentNullException("sharedSecret");
 
-            return des.CreateEncryptor();
+            if (string.IsNullOrEmpty(sharedSecret))
+                throw new ArgumentNullException("session");
+
+            var salt = Encoding.ASCII.GetBytes("o6806642kbM7c5");
+
+            // generate the key from the shared secret + session and the salt
+            var key = new Rfc2898DeriveBytes(sharedSecret + session, salt);
+
+            var a = new AesManaged();
+            a.Key = key.GetBytes(a.KeySize / 8);
+            a.IV = key.GetBytes(a.BlockSize / 8);
+
+            return a;
         }
 
-        public static string EncryptString(this ICryptoTransform transformer, string s)
+        public static string EncryptString(this SymmetricAlgorithm algorithm, string plaintext)
         {
+            if (string.IsNullOrEmpty(plaintext))
+                throw new ArgumentNullException("plaintext");
+
+            var encryptor = algorithm.CreateEncryptor();
+
             var ms = new MemoryStream();
-            var cs = new CryptoStream(ms, transformer, CryptoStreamMode.Write);
+            var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write);
 
             using (var writer = new StreamWriter(cs))
             {
-                writer.Write(s);
+                writer.Write(plaintext);
             }
 
             return Convert.ToBase64String(ms.ToArray());
         }
 
-        public static string DecryptString(this ICryptoTransform transformer, string s)
+        public static string DecryptString(this SymmetricAlgorithm algorithm, string cipher)
         {
-            var bytes = Convert.FromBase64String(s);
+            if (string.IsNullOrEmpty(cipher))
+                throw new ArgumentNullException("cipher");
+
+            var decryptor = algorithm.CreateDecryptor();
+
+            var bytes = Convert.FromBase64String(cipher);
             var ms = new MemoryStream(bytes);
-            var cs = new CryptoStream(ms, transformer, CryptoStreamMode.Read);
+            var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
 
             using (var reader = new StreamReader(cs))
             {

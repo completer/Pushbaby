@@ -39,16 +39,6 @@ namespace Pushak.Client
             this.settings.Validate();
 
             string session = this.ObtainSession();
-
-
-            var encryptor = CryptoUtility.GetEncryptor(settings.SharedSecret, session);
-            string encrypted = encryptor.EncryptString("hello mary!!!");
-
-            var encryptor2 = CryptoUtility.GetEncryptor(settings.SharedSecret, session);
-            string decrypted = encryptor2.DecryptString(encrypted);
-            bool ok = decrypted == "hello mary";
-
-            
             PostPayload(session);
             GetProgressUntilDone(session);
         }
@@ -66,27 +56,25 @@ namespace Pushak.Client
             request.Method = "POST";
             request.Headers.Add("session", session);
 
-            var encryptor = CryptoUtility.GetEncryptor(this.settings.SharedSecret, session);
+            var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session);
 
-
-            string payloadHash = HashUtility.ComputeFileHash(payload);
-            request.Headers.Add("payload-hash", payloadHash); // todo encrypt
-
+            // send the filename
             string filename = Path.GetFileName(payload);
-            string filenameHash = HashUtility.ComputeStringHash(filename);
-            request.Headers.Add("filename-hash", filenameHash); // todo encrypt
+            request.Headers.Add("filename", aes.EncryptString(filename));
 
+            // send the filename hash
+            string filenameHash = HashUtility.ComputeStringHash(filename);
+            request.Headers.Add("filename-hash", aes.EncryptString(filenameHash));
+
+            // send the payload hash
+            string payloadHash = HashUtility.ComputeFileHash(payload);
+            request.Headers.Add("payload-hash", aes.EncryptString(payloadHash));
+
+            // send the payload
             using (var input = File.OpenRead(payload))
-            using (var output = new CryptoStream(request.GetRequestStream(), encryptor, CryptoStreamMode.Write))
+            using (var output = new CryptoStream(request.GetRequestStream(), aes.CreateEncryptor(), CryptoStreamMode.Write))
             {
-                var buffer = new byte[1024];
-                int bytesRead;
-                do
-                {
-                    bytesRead = input.Read(buffer, 0, 1024);
-                    output.Write(buffer, 0, bytesRead);
-                }
-                while (bytesRead > 0);
+                StreamUtility.Copy(input, output);
             }
 
             using (request.GetResponse()) { }

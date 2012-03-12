@@ -4,8 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using Pushak.Shared;
 using log4net;
 
 namespace Pushak.Server
@@ -13,12 +15,14 @@ namespace Pushak.Server
     public class Handler
     {
         readonly ILog log;
+        readonly Settings settings;
         readonly HttpListenerContext context;
         readonly Session session;
 
-        public Handler(ILog log, HttpListenerContext context, Session session)
+        public Handler(ILog log, Settings settings, HttpListenerContext context, Session session)
         {
             this.log = log;
+            this.settings = settings;
             this.context = context;
             this.session = session;
         }
@@ -38,7 +42,7 @@ namespace Pushak.Server
             {
                 this.log.Error("Unhandled exception.", ex);
                 context.Response.StatusCode = 500;
-                this.WriteResponse("Unhandled exception. See server log.");
+                this.WriteResponse("Pushak.Server:: Unhandled exception. See server log.");
             }
         }
 
@@ -82,9 +86,24 @@ namespace Pushak.Server
         {
             session.State = State.Uploading;
 
-            // todo: stream to file
-            var reader = new StreamReader(context.Request.InputStream);
-            string s = reader.ReadToEnd();
+            var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, this.session.Key);
+
+            string filename = aes.DecryptString(context.Request.Headers["filename"] ?? String.Empty);
+            string filenameHash = aes.DecryptString(context.Request.Headers["filename-hash"] ?? String.Empty);
+            if (HashUtility.ComputeStringHash(filename) != filenameHash)
+                throw new ApplicationException("Invalid filename hash.");
+
+            string path = Path.Combine(this.settings.DeploymentDirectory, filename);
+
+            using (var output = File.Create(path))
+            using (var input = new CryptoStream(context.Request.InputStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
+            {
+                StreamUtility.Copy(input, output);
+            }
+
+            string payloadHash = aes.DecryptString(context.Request.Headers["payload-hash"] ?? String.Empty);
+            if (HashUtility.ComputeFileHash(path) != payloadHash)
+                throw new ApplicationException("Invalid payload hash.");
 
             session.State = State.Uploaded;
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Threading;
 using Pushak.Server.Logging;
@@ -18,6 +19,8 @@ namespace Pushak.Server
             var settings = new Settings();
             settings.Validate();
 
+            Directory.CreateDirectory(settings.DeploymentDirectory);
+
             using (var listener = new HttpListener())
             {
                 listener.Prefixes.Add("http://+:80/" + ListenerPath + "/");
@@ -30,7 +33,7 @@ namespace Pushak.Server
                 {
                     var context = listener.GetContext();
                     var session = sessionFactory.Get(context);
-                    var handler = new Handler(log, context, session);
+                    var handler = new Handler(log, settings, context, session);
                     ThreadPool.QueueUserWorkItem(x => handler.Handle());
                 }
             }
