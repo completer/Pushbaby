@@ -4,19 +4,19 @@ Pushbaby - deployment without the labour pains
 
 In stark contrast to human childbirth, Pushbaby makes deploying your applications quite easy.
 
+Pushbaby is a simple tool for server software deployment on Windows. If you are deploying **more than a just a website** or find it a **pain to  connect** to your production server, you might find it useful.
+
 **(1) Glides though firewalls**  
 Forget FTP. No need to talk to Colin from IT. Pushbaby works on port 80.
 
-**(2) Secure by default, works first time**  
-Pushbaby traffic is encrypted, and setup is a doddle.
+**(2) Works first time, secure by default**  
+A simple alternative to MSDeploy, setup is a doddle.
 
 **(3) See progress in real time**  
-Pushbaby streams output from your deployment script back to your build server as it executes.
+Doesn't just hang your build server. Your deployment script output is interactively streamed back as it executes.
 
 How it works
 ------------
-
-Pushbaby is a simple tool for server software deployment on Windows. If you are deploying **more than a single website** or find it a **pain to  connect** to your web server, you might find it useful.
 
 1. On the build server, Pushbaby.Client pushes your build output to your destination server(s).
 2. On the destination server, Pushbaby.Service executes your deployment script.
