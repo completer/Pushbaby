@@ -38,6 +38,8 @@ namespace Pushak.Client
         {
             this.settings.Validate();
 
+            ServicePointManager.Expect100Continue = false;
+
             string session = this.ObtainSession();
             PostPayload(session);
             GetProgressUntilDone(session);
