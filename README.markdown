@@ -4,19 +4,19 @@ Pushbaby - deployment without the labour pains
 
 In stark contrast to human childbirth, Pushbaby makes deploying your applications quite easy.
 
-**(1) Glides though firewalls.**  
+**(1) Glides though firewalls**  
 Forget FTP. No need to talk to Colin from IT. Pushbaby works on port 80.
 
-**(2) Secure by default, works first time.**  
-Pushbaby traffic is encrypted, and setup is easy.
+**(2) Secure by default, works first time**  
+Pushbaby traffic is encrypted, and setup is a doddle.
 
-**(3) See progress in real time.**  
-Pushbaby streams output from your deployment script back to your build server.
+**(3) See progress in real time**  
+Pushbaby streams output from your deployment script back to your build server as it executes.
 
 How it works
 ------------
 
-Pushbaby is a simple tool for server software deployment on Windows. If you are deploying **more than a single website** or find it a **pain to  connect** to your web server, it might be useful.
+Pushbaby is a simple tool for server software deployment on Windows. If you are deploying **more than a single website** or find it a **pain to  connect** to your web server, you might find it useful.
 
 1. On the build server, Pushbaby.Client pushes your build output to your destination server(s).
 2. On the destination server, Pushbaby.Service executes your deployment script.
@@ -30,21 +30,21 @@ How to use Pushbaby
 Put the Pushbaby.Client binaries folder on your build server.  
 Put the Pushbaby.Service binaries folder on your destination server(s).
 
-In the **service app.config**, set the values:
+In the **service** app.config, set the values:
 
 - `SharedSecret` - an encryption key for secure communication over the network.
 - `DeploymentDirectory` - the path of the directory in which to place the uploaded file.
 - `ExecutableFile` - the path of the file to run when the upload is complete.
 
-If you want multiple Pushbaby services running on the same destination machine (or you just want a non-default URI), set the value:
+If you want multiple Pushbaby services running on the same destination machine (or you simply want a non-default URI), set the value:
 
 - `UriPrefix` - the URI to listen on. The default value is `http://+:80/pushbaby/`. See MSDN for the http.sys [prefix format](http://msdn.microsoft.com/en-us/library/system.net.httplistenerprefixcollection.add.aspx).
 
-In the **client app.config**, set the value:
+In the **client** app.config, set the value:
 
 - `SharedSecret` - to the same as you used on the server.
 
-To install Pushbaby.Service as a Windows Service
+How to install the service as a Windows Service
 ------------------------------------------------
 
 Open an Administrator command window.  
@@ -66,6 +66,6 @@ Call Pushbaby as the last step in your build process.
     
 For example:
 
-    Pushbaby.Client "D:\Builds\Foobler.1.0.0.123.zip" "http://172.16.0.70/pushbaby/"
+    Pushbaby.Client "D:\Builds\Foobler.1.0.0.123.zip" "http://www.example.com/pushbaby/"
  
  
