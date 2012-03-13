@@ -2,6 +2,8 @@
 using System.IO;
 using System.Net;
 using System.Threading;
+using Ninject;
+using Pushbaby.Server.Injection;
 using Pushbaby.Server.Logging;
 using log4net;
 
@@ -14,26 +16,44 @@ namespace Pushbaby.Server
         public static void Main()
         {
             Log4NetConfiguration.Configure();
-            var log = LogManager.GetLogger(typeof(Server));
 
             var settings = new Settings();
             settings.Validate();
 
+            var kernel = new StandardKernel();
+            kernel.Load<NinjectBindings>();
+            kernel.Bind<Settings>().ToConstant(settings);
+
+            var server = kernel.Get<Server>();
+            server.Run();
+        }
+
+        readonly ILog log;
+        readonly Settings settings;
+        readonly DispatcherFactory dispatcherFactory;
+
+        public Server(ILog log, Settings settings, DispatcherFactory dispatcherFactory)
+        {
+            this.log = log;
+            this.settings = settings;
+            this.dispatcherFactory = dispatcherFactory;
+        }
+
+        public void Run()
+        {
             Directory.CreateDirectory(settings.DeploymentDirectory);
 
             using (var listener = new HttpListener())
             {
-                listener.Prefixes.Add(settings.UriPrefix ?? "http://+:80/pushak/");
+                listener.Prefixes.Add(settings.UriPrefix ?? "http://+:80/pushbaby/");
                 listener.Start();
                 log.Info("Server is starting up...");
-
-                var sessionFactory = new SessionFactory(log);
 
                 while (true)
                 {
                     var context = listener.GetContext();
-                    var handler = new Handler(log, settings, context, sessionFactory);
-                    ThreadPool.QueueUserWorkItem(x => handler.Handle());
+                    var dispatcher = dispatcherFactory.Create(context);
+                    ThreadPool.QueueUserWorkItem(x => dispatcher.Dispatch());
                 }
             }
         }

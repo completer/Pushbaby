@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,48 +15,22 @@ namespace Pushbaby.Server
         readonly ILog log;
         readonly Settings settings;
         readonly HttpListenerContext context;
-        readonly SessionFactory sessionFactory;
+        readonly Session session;
 
-        public Handler(ILog log, Settings settings, HttpListenerContext context, SessionFactory sessionFactory)
+        public Handler(ILog log, Settings settings, HttpListenerContext context, Session session)
         {
             this.log = log;
             this.settings = settings;
             this.context = context;
-            this.sessionFactory = sessionFactory;
+            this.session = session;
         }
 
-        public void Handle()
+        public void HandleHomepage()
         {
-            try
-            {
-                var session = sessionFactory.Get(context);
-
-                if (context.Request.Headers["session"] == null)
-                {
-                    if (context.Request.HttpMethod == "POST")
-                        this.HandleGreeting();
-                    else
-                        this.HandleHomepage();
-                }
-                else
-                {
-                    if (context.Request.HttpMethod == "POST")
-                        this.HandlePayload();
-                    else
-                        this.HandleProgress();
-                }
-
-                sessionFactory.Put(session);
-            }
-            catch (Exception ex)
-            {
-                this.log.ErrorFormat("Unhandled exception. Request: {0}. Exception: {1}", context.Request.Url, ex);
-                context.Response.StatusCode = 500;
-                this.WriteResponse("Pushbaby.Server:: Unhandled exception. See server log.");
-            }
+            this.WriteResponse("Pushbaby.Server:: Server is running. " + DateTime.UtcNow.ToLongDateString());
         }
 
-        void HandleGreeting()
+        public void HandleGreeting()
         {
             this.log.InfoFormat("Handling greeting for session {0}...", session.Key);
 
@@ -66,7 +38,7 @@ namespace Pushbaby.Server
             session.State = State.Greeted;
         }
 
-        void HandlePayload()
+        public void HandlePayload()
         {
             this.log.InfoFormat("Handling payload for session {0}...", session.Key);
 
@@ -75,7 +47,7 @@ namespace Pushbaby.Server
             this.WriteResponse("OK");
         }
 
-        void HandleProgress()
+        public void HandleProgress()
         {
             this.log.InfoFormat("Handling progress for session {0}...", session.Key);
 

@@ -7,12 +7,12 @@ using log4net;
 
 namespace Pushbaby.Server
 {
-    public class SessionFactory
+    public class SessionManager
     {
         readonly ILog log;
         readonly ConcurrentDictionary<string, Session> sessions = new ConcurrentDictionary<string, Session>();
 
-        public SessionFactory(ILog log)
+        public SessionManager(ILog log)
         {
             this.log = log;
         }
@@ -25,13 +25,12 @@ namespace Pushbaby.Server
 
             if (key == null)
             {
-                var session = new Session(CryptoUtility.GenerateSessionKey(), DateTime.UtcNow, this);
-                this.sessions.TryAdd(session.Key, session);
-                return session;
+                return new Session(CryptoUtility.GenerateSessionKey(), DateTime.UtcNow);
             }
             else
             {
                 Session session;
+                
                 if (this.sessions.TryRemove(key, out session))
                     return session;
                 else

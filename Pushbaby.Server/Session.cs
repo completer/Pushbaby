@@ -6,18 +6,16 @@ namespace Pushbaby.Server
 {
     public class Session
     {
-        readonly SessionFactory sessionFactory;
         readonly ConcurrentQueue<string> buffer = new ConcurrentQueue<string>();
 
         public string Key { get; private set; }
         public DateTime CreatedOnUtc { get; private set; }
         public State State { get; set; }
 
-        public Session(string key, DateTime createdOnUtc, SessionFactory sessionFactory)
+        public Session(string key, DateTime createdOnUtc)
         {
             this.Key = key;
             this.CreatedOnUtc = createdOnUtc;
-            this.sessionFactory = sessionFactory;
         }
 
         public void Write(string s)
@@ -33,9 +31,5 @@ namespace Pushbaby.Server
             return String.Join(Environment.NewLine, ss);
         }
 
-        public void Remove()
-        {
-            this.sessionFactory.Remove(this);
-        }
     }
 }
