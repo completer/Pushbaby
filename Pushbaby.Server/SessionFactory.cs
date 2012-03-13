@@ -32,11 +32,16 @@ namespace Pushbaby.Server
             else
             {
                 Session session;
-                if (this.sessions.TryGetValue(key, out session))
+                if (this.sessions.TryRemove(key, out session))
                     return session;
                 else
-                    throw new InvalidOperationException("Session does not exist or has ended.");
+                    throw new ApplicationException("Session '" + key + "'does not exist, is in use, or has ended.");
             }
+        }
+
+        public void Put(Session session)
+        {
+            this.sessions.TryAdd(session.Key, session);
         }
 
         void DeleteOldSessions()

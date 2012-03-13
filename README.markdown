@@ -69,11 +69,11 @@ Call Pushbaby as the last step in your build process.
 For example:
 
     Pushbaby.Client "D:\Builds\Foobler.1.0.0.123.zip" "http://www.example.com/pushbaby/"
+  
+Disclaimer
+----------
+This code exists "as-is" on Github.com.  
+The author is not a security expert and the code has not been
+reviewed by a security professional.
  
-> Disclaimer
-> ----------
-> This code exists "as-is" on Github.com.
-> The author is not a security expert and the code has not been
-> reviewed by a security professional.
-> 
  

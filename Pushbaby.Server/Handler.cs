@@ -17,30 +17,42 @@ namespace Pushbaby.Server
         readonly ILog log;
         readonly Settings settings;
         readonly HttpListenerContext context;
-        readonly Session session;
+        readonly SessionFactory sessionFactory;
 
-        public Handler(ILog log, Settings settings, HttpListenerContext context, Session session)
+        public Handler(ILog log, Settings settings, HttpListenerContext context, SessionFactory sessionFactory)
         {
             this.log = log;
             this.settings = settings;
             this.context = context;
-            this.session = session;
+            this.sessionFactory = sessionFactory;
         }
 
         public void Handle()
         {
             try
             {
-                if (context.Request.HttpMethod == "POST" && context.Request.Headers["session"] == null)
-                    this.HandleGreeting();
-                else if (context.Request.HttpMethod == "POST")
-                    this.HandlePayload();
+                var session = sessionFactory.Get(context);
+
+                if (context.Request.Headers["session"] == null)
+                {
+                    if (context.Request.HttpMethod == "POST")
+                        this.HandleGreeting();
+                    else
+                        this.HandleHomepage();
+                }
                 else
-                    this.HandleProgress();
+                {
+                    if (context.Request.HttpMethod == "POST")
+                        this.HandlePayload();
+                    else
+                        this.HandleProgress();
+                }
+
+                sessionFactory.Put(session);
             }
             catch (Exception ex)
             {
-                this.log.Error("Unhandled exception.", ex);
+                this.log.ErrorFormat("Unhandled exception. Request: {0}. Exception: {1}", context.Request.Url, ex);
                 context.Response.StatusCode = 500;
                 this.WriteResponse("Pushbaby.Server:: Unhandled exception. See server log.");
             }

@@ -32,8 +32,7 @@ namespace Pushbaby.Server
                 while (true)
                 {
                     var context = listener.GetContext();
-                    var session = sessionFactory.Get(context);
-                    var handler = new Handler(log, settings, context, session);
+                    var handler = new Handler(log, settings, context, sessionFactory);
                     ThreadPool.QueueUserWorkItem(x => handler.Handle());
                 }
             }
