@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Ninject.Extensions.Factory;
 using Ninject.Modules;
 using log4net;
 
@@ -16,7 +13,8 @@ namespace Pushbaby.Server.Injection
         {
             this.Kernel.Bind<ILog>().ToMethod(x => LogManager.GetLogger(typeof(Server)));
             this.Kernel.Bind<SessionManager>().ToSelf().InSingletonScope();
-            this.Kernel.Bind<HandlerFactory>().ToSelf();
+            this.Kernel.Bind<IRouterFactory>().ToFactory();
+            this.Kernel.Bind<IHandlerFactory>().ToFactory();
         }
     }
 

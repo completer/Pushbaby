@@ -12,18 +12,14 @@ using log4net;
 
 namespace Pushbaby.Server
 {
-    public interface IDispatcherFactory
-    {
-        
-    }
-    public class Dispatcher
+    public class Router
     {
         readonly ILog log;
         readonly HttpListenerContext context;
         readonly SessionManager sessionManager;
-        readonly HandlerFactory handlerFactory;
+        readonly IHandlerFactory handlerFactory;
 
-        public Dispatcher(ILog log, HttpListenerContext context, SessionManager sessionManager, HandlerFactory handlerFactory)
+        public Router(ILog log, HttpListenerContext context, SessionManager sessionManager, IHandlerFactory handlerFactory)
         {
             this.log = log;
             this.context = context;
@@ -31,35 +27,40 @@ namespace Pushbaby.Server
             this.handlerFactory = handlerFactory;
         }
 
-        public void Dispatch()
+        public void Route()
         {
             try
             {
-                var session = sessionManager.Get(context);
-                var handler = handlerFactory.Create(session, context);
+                var session = this.sessionManager.Get(this.context);
+                var handler = this.handlerFactory.Create(this.context, session);
 
-                if (context.Request.Headers["session"] == null)
+                if (this.context.Request.Headers["session"] == null)
                 {
-                    if (context.Request.HttpMethod == "POST")
+                    if (this.context.Request.HttpMethod == "POST")
                         handler.HandleGreeting();
                     else
                         handler.HandleHomepage();
                 }
                 else
                 {
-                    if (context.Request.HttpMethod == "POST")
+                    if (this.context.Request.HttpMethod == "POST")
                         handler.HandlePayload();
                     else
                         handler.HandleProgress();
                 }
 
-                sessionManager.Put(session);
+                this.sessionManager.Put(session);
             }
             catch (Exception ex)
             {
                 this.log.ErrorFormat("Unhandled exception. Request: {0}. Exception: {1}", context.Request.Url, ex);
-                context.Response.StatusCode = 500;
-                this.WriteResponse("Pushbaby.Server:: Unhandled exception. See server log.");
+
+                this.context.Response.StatusCode = 500;
+
+                using (var writer = new StreamWriter(this.context.Response.OutputStream))
+                {
+                    writer.Write("Pushbaby.Server:: Unhandled exception. See server log.");
+                }
             }
         }
     }

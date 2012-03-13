@@ -6,7 +6,7 @@ namespace Pushbaby.Server
 {
     public class Session
     {
-        readonly ConcurrentQueue<string> buffer = new ConcurrentQueue<string>();
+        readonly ConcurrentQueue<string> progress = new ConcurrentQueue<string>();
 
         public string Key { get; private set; }
         public DateTime CreatedOnUtc { get; private set; }
@@ -18,18 +18,17 @@ namespace Pushbaby.Server
             this.CreatedOnUtc = createdOnUtc;
         }
 
-        public void Write(string s)
+        public void WriteProgress(string s)
         {
-            this.buffer.Enqueue("Pushbaby.Server:: " + s);
+            this.progress.Enqueue("Pushbaby.Server:: " + s);
         }
 
-        public string Read()
+        public string ReadProgress()
         {
             var ss = new List<string>();
             string s;
-            while (buffer.TryDequeue(out s)) { ss.Add(s); }
+            while (this.progress.TryDequeue(out s)) { ss.Add(s); }
             return String.Join(Environment.NewLine, ss);
         }
-
     }
 }

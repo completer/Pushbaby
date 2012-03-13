@@ -40,7 +40,10 @@ namespace Pushbaby.Server
 
         public void Put(Session session)
         {
-            this.sessions.TryAdd(session.Key, session);
+            if (session.State == State.Executed)
+                this.Remove(session);
+            else
+                this.sessions.TryAdd(session.Key, session);
         }
 
         void DeleteOldSessions()

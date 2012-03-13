@@ -51,19 +51,12 @@ namespace Pushbaby.Server
         {
             this.log.InfoFormat("Handling progress for session {0}...", session.Key);
 
-            if (session.State == State.Executing)
-            {
-                this.WriteResponse(session.Read());
-            }
-            else if (session.State == State.Executed)
-            {
-                this.WriteResponse(session.Read());
-                this.session.Remove();
-            }
-            else
-            {
-                throw new InvalidOperationException("Invalid state for session.");
-            }
+            this.WriteResponse(session.ReadProgress());
+        }
+
+        public void HandleError()
+        {
+            this.WriteResponse("Pushbaby.Server:: Unhandled exception. See server log.");
         }
 
         void SavePayloadToDisk()
@@ -101,16 +94,16 @@ namespace Pushbaby.Server
                 p.StartInfo.FileName = this.settings.ExecutableFile;
                 p.StartInfo.UseShellExecute = false;
                 p.StartInfo.RedirectStandardOutput = true;
-                p.OutputDataReceived += (s, e) => session.Write(e.Data);
+                p.OutputDataReceived += (s, e) => session.WriteProgress(e.Data);
 
-                session.Write("Running bat file...");
+                session.WriteProgress("Running bat file...");
                 p.Start();
                 p.BeginOutputReadLine();
                 p.WaitForExit();
 
                 if (p.ExitCode > 0)
                 {
-                    session.Write("Exited with code " + p.ExitCode);
+                    session.WriteProgress("Exited with code " + p.ExitCode);
                 }
             }
 

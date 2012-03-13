@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -15,10 +16,8 @@ namespace Pushbaby.Client
     {
         static void Main(string[] args)
         {
-            Thread.Sleep(100);
-
             string payload  = args.ElementAt(0);
-            string destination = args.ElementAtOrDefault(1) ?? "http://localhost/pushak/";
+            string destination = args.ElementAtOrDefault(1) ?? "http://localhost/pushbaby/";
 
             new Client(new Settings(), payload, destination).Run();
         }
@@ -36,8 +35,8 @@ namespace Pushbaby.Client
 
         public void Run()
         {
+            WaitForServerToStart();
             this.settings.Validate();
-
             ServicePointManager.Expect100Continue = false;
 
             string session = this.ObtainSession();
@@ -105,5 +104,11 @@ namespace Pushbaby.Client
                 Thread.Sleep(this.settings.PollIntervalInSeconds * 1000);
             }
         }
+
+        [Conditional("DEBUG")]
+        static void WaitForServerToStart()
+        {
+            Thread.Sleep(500);
+        } 
     }
 }

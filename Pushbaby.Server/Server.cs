@@ -30,30 +30,32 @@ namespace Pushbaby.Server
 
         readonly ILog log;
         readonly Settings settings;
-        readonly DispatcherFactory dispatcherFactory;
+        readonly IRouterFactory routerFactory;
 
-        public Server(ILog log, Settings settings, DispatcherFactory dispatcherFactory)
+        public Server(ILog log, Settings settings, IRouterFactory routerFactory)
         {
             this.log = log;
             this.settings = settings;
-            this.dispatcherFactory = dispatcherFactory;
+            this.routerFactory = routerFactory;
         }
 
         public void Run()
         {
+            this.log.Info("Server is starting up...");
+
             Directory.CreateDirectory(settings.DeploymentDirectory);
 
             using (var listener = new HttpListener())
             {
                 listener.Prefixes.Add(settings.UriPrefix ?? "http://+:80/pushbaby/");
                 listener.Start();
-                log.Info("Server is starting up...");
+                this.log.Info("Server has starting up.");
 
                 while (true)
                 {
                     var context = listener.GetContext();
-                    var dispatcher = dispatcherFactory.Create(context);
-                    ThreadPool.QueueUserWorkItem(x => dispatcher.Dispatch());
+                    var router = this.routerFactory.Create(context);
+                    ThreadPool.QueueUserWorkItem(x => router.Route());
                 }
             }
         }
