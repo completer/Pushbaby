@@ -37,12 +37,14 @@ Put the Pushbaby.Service binaries folder on your destination server(s) and insta
 In the **service** app.config, set the values:
 
 - `SharedSecret` - an encryption key for secure communication over the network.
-- `DeploymentDirectory` - the path of the directory in which to place the uploaded file.
-- `ExecutableFile` - the path of the file to run when the upload is complete.
+- `DeploymentDirectory` - the path of the directory in which to place the payload.
+- `ExecutableFile` - the path of the file to run when the upload is complete. 
 
 If you want multiple Pushbaby services running on the same destination machine (or you simply want a non-default URI), set the value:
 
 - `UriPrefix` - the URI to listen on. The default value is `http://+:80/pushbaby/`. See MSDN for the http.sys [prefix format](http://msdn.microsoft.com/en-us/library/system.net.httplistenerprefixcollection.add.aspx).
+
+The path to the uploaded payload is passed as the only argument to the executable.
 
 In the **client** app.config, set the value:
 
@@ -50,8 +52,6 @@ In the **client** app.config, set the value:
 
 How to install the service
 --------------------------
-
-Just install as a Windows Service.
 
 Open an Administrator command window.  
     cd C:\Windows\Microsoft.NET\Framework\v4.0.30319
@@ -63,9 +63,6 @@ Set the logon of the service to a user with Administrator rights.
 Start the service.
 
 To uninstall use the `/u` switch.
-
-The service needs to run with elevated privileges to listen, although see bottom of
-http://stackoverflow.com/questions/4019466/httplistener-access-denied-c-sharp-windows-7
 
 How to use the client
 ---------------------
@@ -88,9 +85,9 @@ The author is not a security expert and the code has not been reviewed by a secu
 Praise for Pushbaby
 -------------------
 
-> This is a terrible idea.
+> This is a terrible idea.  
 *Eric Lippert*
 
-> You should of used SSH.
+> You should of used SSH.  
 *Colin from IT*
  
