@@ -5,6 +5,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using Ionic.Zip;
 using Pushbaby.Shared;
 using log4net;
 
@@ -43,6 +44,7 @@ namespace Pushbaby.Server
             this.log.InfoFormat("Handling payload for session {0}...", session.Key);
 
             this.SavePayloadToDisk();
+            this.ValidatePayload();
             ThreadPool.QueueUserWorkItem(x => this.ExecuteBatFile());
             this.WriteResponse("OK");
         }
@@ -63,12 +65,18 @@ namespace Pushbaby.Server
         {
             session.State = State.Uploading;
 
+            // todo: let's split method this out a bit
+
             var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, this.session.Key);
 
             string filename = aes.DecryptString(context.Request.Headers["filename"] ?? String.Empty);
             string filenameHash = aes.DecryptString(context.Request.Headers["filename-hash"] ?? String.Empty);
+
             if (HashUtility.ComputeStringHash(filename) != filenameHash)
-                throw new ApplicationException("Invalid filename hash.");
+                throw new ApplicationException("Filename hash did not match.");
+
+            if (String.IsNullOrWhiteSpace(filename))
+                throw new ApplicationException("Empty filename was given.");
 
             string path = Path.Combine(this.settings.DeploymentDirectory, filename);
 
@@ -79,10 +87,30 @@ namespace Pushbaby.Server
             }
 
             string payloadHash = aes.DecryptString(context.Request.Headers["payload-hash"] ?? String.Empty);
+
             if (HashUtility.ComputeFileHash(path) != payloadHash)
-                throw new ApplicationException("Invalid payload hash.");
+                throw new ApplicationException("Payload hash did not match.");
+
+            if (new FileInfo(path).Length < 16)
+                throw new ApplicationException("File was too small.");
+
+            string extension = Path.GetExtension(filename);
+            if (extension != null && extension.ToLowerInvariant() == ".zip")
+            {
+                using (var zip = new ZipFile(path))
+                {
+                    string unzippedPath = Path.Combine(this.settings.DeploymentDirectory, Path.GetFileNameWithoutExtension(filename));
+                    zip.ExtractAll(unzippedPath, ExtractExistingFileAction.OverwriteSilently);
+                }
+                File.Delete(path);
+            }
 
             session.State = State.Uploaded;
+        }
+
+        void ValidatePayload()
+        {
+            // ensure the name and content of the payload are non-zero
         }
 
         void ExecuteBatFile()
@@ -122,5 +150,10 @@ namespace Pushbaby.Server
                 output.Write(bytes, 0, bytes.Length);
             }
         }
+
+        void Unzip()
+        {
+        }
+
     }
 }

@@ -17,5 +17,4 @@ namespace Pushbaby.Server.Injection
             this.Kernel.Bind<IHandlerFactory>().ToFactory();
         }
     }
-
 }

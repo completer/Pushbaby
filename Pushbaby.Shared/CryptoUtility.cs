@@ -57,14 +57,14 @@ namespace Pushbaby.Shared
             return Convert.ToBase64String(ms.ToArray());
         }
 
-        public static string DecryptString(this SymmetricAlgorithm algorithm, string cipher)
+        public static string DecryptString(this SymmetricAlgorithm algorithm, string ciphertext)
         {
-            if (string.IsNullOrEmpty(cipher))
-                throw new ArgumentNullException("cipher");
+            if (string.IsNullOrEmpty(ciphertext))
+                throw new ArgumentNullException("ciphertext");
 
             var decryptor = algorithm.CreateDecryptor();
 
-            var bytes = Convert.FromBase64String(cipher);
+            var bytes = Convert.FromBase64String(ciphertext);
             var ms = new MemoryStream(bytes);
             var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
 

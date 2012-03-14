@@ -48,7 +48,9 @@ namespace Pushbaby.Server
 
         void DeleteOldSessions()
         {
-            foreach (var session in sessions.Values.Where(s => s.CreatedOnUtc < DateTime.UtcNow.AddHours(-2)))
+            foreach (var session in sessions.Values
+                .Where(s => s.CreatedOnUtc < DateTime.UtcNow.AddHours(-2))
+                .ToList())
             {
                 this.Remove(session);
             }
