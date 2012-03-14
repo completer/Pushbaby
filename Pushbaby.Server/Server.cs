@@ -47,9 +47,11 @@ namespace Pushbaby.Server
 
             using (var listener = new HttpListener())
             {
-                listener.Prefixes.Add(settings.UriPrefix ?? "http://+:80/pushbaby/");
+                string uriPrefix = settings.UriPrefix ?? "http://+:80/pushbaby/";
+
+                listener.Prefixes.Add(uriPrefix);
                 listener.Start();
-                this.log.Info("Server has starting up.");
+                this.log.InfoFormat("Server has started up. Listening on {0}", uriPrefix);
 
                 while (true)
                 {

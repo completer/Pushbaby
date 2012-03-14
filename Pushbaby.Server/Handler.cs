@@ -43,9 +43,8 @@ namespace Pushbaby.Server
         {
             this.log.InfoFormat("Handling payload for session {0}...", session.Key);
 
-            this.SavePayloadToDisk();
-            this.ValidatePayload();
-            ThreadPool.QueueUserWorkItem(x => this.ExecuteBatFile());
+            string payloadPath = this.SavePayloadToDisk();
+            ThreadPool.QueueUserWorkItem(x => this.ExecuteBatFile(payloadPath));
             this.WriteResponse("OK");
         }
 
@@ -61,7 +60,7 @@ namespace Pushbaby.Server
             this.WriteResponse("Pushbaby.Server:: Unhandled exception. See server log.");
         }
 
-        void SavePayloadToDisk()
+        string SavePayloadToDisk()
         {
             session.State = State.Uploading;
 
@@ -92,28 +91,26 @@ namespace Pushbaby.Server
                 throw new ApplicationException("Payload hash did not match.");
 
             if (new FileInfo(path).Length < 16)
-                throw new ApplicationException("File was too small.");
+                throw new ApplicationException("Payload was too small.");
 
+            string finalPayloadPath = path;
             string extension = Path.GetExtension(filename);
             if (extension != null && extension.ToLowerInvariant() == ".zip")
             {
                 using (var zip = new ZipFile(path))
                 {
-                    string unzippedPath = Path.Combine(this.settings.DeploymentDirectory, Path.GetFileNameWithoutExtension(filename));
-                    zip.ExtractAll(unzippedPath, ExtractExistingFileAction.OverwriteSilently);
+                    finalPayloadPath = Path.Combine(this.settings.DeploymentDirectory, Path.GetFileNameWithoutExtension(filename));
+                    zip.ExtractAll(finalPayloadPath, ExtractExistingFileAction.OverwriteSilently);
                 }
                 File.Delete(path);
             }
 
             session.State = State.Uploaded;
+
+            return finalPayloadPath;
         }
 
-        void ValidatePayload()
-        {
-            // ensure the name and content of the payload are non-zero
-        }
-
-        void ExecuteBatFile()
+        void ExecuteBatFile(string payloadPath)
         {
             session.State = State.Executing;
 
@@ -122,6 +119,7 @@ namespace Pushbaby.Server
                 p.StartInfo.FileName = this.settings.ExecutableFile;
                 p.StartInfo.UseShellExecute = false;
                 p.StartInfo.RedirectStandardOutput = true;
+                p.StartInfo.Arguments = payloadPath;
                 p.OutputDataReceived += (s, e) => session.WriteProgress(e.Data);
 
                 session.WriteProgress("Running bat file...");
@@ -150,10 +148,5 @@ namespace Pushbaby.Server
                 output.Write(bytes, 0, bytes.Length);
             }
         }
-
-        void Unzip()
-        {
-        }
-
     }
 }
