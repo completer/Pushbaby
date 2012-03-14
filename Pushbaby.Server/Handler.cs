@@ -119,7 +119,7 @@ namespace Pushbaby.Server
                 p.StartInfo.FileName = this.settings.ExecutableFile;
                 p.StartInfo.UseShellExecute = false;
                 p.StartInfo.RedirectStandardOutput = true;
-                p.StartInfo.Arguments = payloadPath;
+                p.StartInfo.Arguments = payloadPath.Enquote();
                 p.OutputDataReceived += (s, e) => session.WriteProgress(e.Data);
 
                 session.WriteProgress("Running bat file...");

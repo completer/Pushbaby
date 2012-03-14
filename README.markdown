@@ -88,7 +88,9 @@ The author is not a security expert and the code has not been reviewed by a secu
 Praise for Pushbaby
 -------------------
 
-> This is a terrible idea. *Eric Lippert*
+> This is a terrible idea.
+*Eric Lippert*
 
-> You should of used SSH. *Colin from IT*
+> You should of used SSH.
+*Colin from IT*
  
