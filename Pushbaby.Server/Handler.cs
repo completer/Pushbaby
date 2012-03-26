@@ -14,15 +14,15 @@ namespace Pushbaby.Server
         readonly ILog log;
         readonly EndpointSettings settings;
         readonly IContext context;
-        readonly ISessionManager sessionManager;
+        readonly ISessionStore sessionStore;
         readonly IThreadManager threadManager;
 
-        public Handler(ILog log, EndpointSettings settings, IContext context, ISessionManager sessionManager, IThreadManager threadManager)
+        public Handler(ILog log, EndpointSettings settings, IContext context, ISessionStore sessionStore, IThreadManager threadManager)
         {
             this.log = log;
             this.settings = settings;
             this.context = context;
-            this.sessionManager = sessionManager;
+            this.sessionStore = sessionStore;
             this.threadManager = threadManager;
         }
 
@@ -30,7 +30,7 @@ namespace Pushbaby.Server
         {
             try
             {
-                var session = this.sessionManager.Get(this.context);
+                var session = this.sessionStore.Get(this.context);
 
                 if (this.context.RequestHeaders["session"] == null)
                 {
@@ -47,7 +47,7 @@ namespace Pushbaby.Server
                         this.HandleProgress(session);
                 }
 
-                this.sessionManager.Put(session);
+                this.sessionStore.Put(session);
             }
             catch (Exception ex)
             {
@@ -159,7 +159,7 @@ namespace Pushbaby.Server
                 p.StartInfo.Arguments = payloadPath.Enquote();
                 p.OutputDataReceived += (s, e) => session.WriteProgress(e.Data);
 
-                session.WriteProgress("Running bat file...");
+                session.WriteProgress("Running executable file...");
                 p.Start();
                 p.BeginOutputReadLine();
                 p.WaitForExit();

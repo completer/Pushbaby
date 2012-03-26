@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Net;
-using log4net;
+﻿using log4net;
 
 namespace Pushbaby.Server
 {
@@ -14,32 +12,31 @@ namespace Pushbaby.Server
         readonly ILog log;
         readonly EndpointSettings settings;
         readonly IFileSystem fileSystem;
-        readonly IThreadManager threadManager;
-        readonly IListenerFactory listenerFactory;
+        readonly IListener listener;
         readonly IHandlerFactory handlerFactory;
+        readonly IThreadManager threadManager;
 
-        public Endpoint(ILog log, EndpointSettings settings, IFileSystem fileSystem, IThreadManager threadManager, IListenerFactory listenerFactory, IHandlerFactory handlerFactory)
+        public Endpoint(ILog log, EndpointSettings settings, IFileSystem fileSystem, IListener listener, IHandlerFactory handlerFactory, IThreadManager threadManager)
         {
             this.log = log;
             this.settings = settings;
             this.fileSystem = fileSystem;
-            this.threadManager = threadManager;
-            this.listenerFactory = listenerFactory;
+            this.listener = listener;
             this.handlerFactory = handlerFactory;
+            this.threadManager = threadManager;
         }
 
         public void Listen()
         {
             this.fileSystem.CreateDirectory(this.settings.PayloadDirectory);
 
-            var listener = this.listenerFactory.Create();
-            listener.AddPrefix(this.settings.Uri);
-            listener.Start();
+            this.listener.AddPrefix(this.settings.Uri);
+            this.listener.Start();
             this.log.InfoFormat("Endpoint listening on {0}", this.settings.Uri);
 
             while (true)
             {
-                var context = listener.GetContext();
+                var context = this.listener.GetContext();
                 var handler = this.handlerFactory.Create(this.settings, context);
                 this.threadManager.Queue(handler.Handle);
             }

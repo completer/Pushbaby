@@ -1,6 +1,5 @@
 ﻿using System.Configuration;
 using System.Linq;
-using System.Threading;
 using Ninject;
 using Pushbaby.Server.Injection;
 using Pushbaby.Server.Logging;
@@ -10,8 +9,6 @@ namespace Pushbaby.Server
 {
     public class Server
     {
-        public static readonly string ListenerPath = "";
-
         public static void Main()
         {
             Log4NetConfiguration.Configure();
@@ -53,9 +50,6 @@ namespace Pushbaby.Server
             }
 
             this.log.InfoFormat("Server has started up with {0} endpoint(s).", this.settings.EndpointSettingsCollection.Count);
-
         }
     }
-
-    public enum State { Greeting = 0, Greeted, Uploading, Uploaded, Executing, Executed }
 }

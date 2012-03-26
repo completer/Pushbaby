@@ -5,18 +5,18 @@ using Pushbaby.Shared;
 
 namespace Pushbaby.Server
 {
-    public interface ISessionManager
+    public interface ISessionStore
     {
-        Session Get(IContext context);
-        void Put(Session session);
-        void Remove(Session session);
+        ISession Get(IContext context);
+        void Put(ISession session);
+        void Remove(ISession session);
     }
 
-    public class SessionManager : ISessionManager
+    public class SessionStore : ISessionStore
     {
-        readonly ConcurrentDictionary<string, Session> sessions = new ConcurrentDictionary<string, Session>();
+        readonly ConcurrentDictionary<string, ISession> sessions = new ConcurrentDictionary<string, ISession>();
 
-        public Session Get(IContext context)
+        public ISession Get(IContext context)
         {
             this.DeleteOldSessions();
 
@@ -28,7 +28,7 @@ namespace Pushbaby.Server
             }
             else
             {
-                Session session;
+                ISession session;
                 
                 if (this.sessions.TryRemove(key, out session))
                     return session;
@@ -37,7 +37,7 @@ namespace Pushbaby.Server
             }
         }
 
-        public void Put(Session session)
+        public void Put(ISession session)
         {
             if (session.State == State.Executed)
                 this.Remove(session);
@@ -55,7 +55,7 @@ namespace Pushbaby.Server
             }
         }
 
-        public void Remove(Session session)
+        public void Remove(ISession session)
         {
             this.sessions.TryRemove(session.Key, out session);
         }
