@@ -42,7 +42,7 @@ namespace Pushbaby.Client
 
         public void Run()
         {
-            WaitForServerToStart();
+            WaitForServerToStartIfDebugging();
             this.settings.Validate();
             ServicePointManager.Expect100Continue = false;
 
@@ -60,9 +60,7 @@ namespace Pushbaby.Client
         {
             Console.WriteLine("Pushbaby.Client:: Uploading payload...");
 
-            var payloadInfo = this.PreparePayload();
-
-            try
+            using (var payloadInfo = this.PreparePayload())
             {
                 var request = WebRequest.Create(destination);
                 request.Method = "POST";
@@ -72,8 +70,8 @@ namespace Pushbaby.Client
 
                 // send the filename and its hash
                 request.Headers.Add("filename", aes.EncryptString(payloadInfo.Name));
-                string payloadNameHash = HashUtility.ComputeStringHash(payloadInfo.Name);
-                request.Headers.Add("filename-hash", aes.EncryptString(payloadNameHash));
+                string filenameHash = HashUtility.ComputeStringHash(payloadInfo.Name);
+                request.Headers.Add("filename-hash", aes.EncryptString(filenameHash));
 
                 // send the payload hash
                 string payloadHash = HashUtility.ComputeFileHash(payloadInfo.Path);
@@ -86,13 +84,7 @@ namespace Pushbaby.Client
                     StreamUtility.Copy(input, output);
                 }
 
-                using (request.GetResponse()) { }
-            }
-            finally
-            {
-                // clean up the payload file
-                if (payloadInfo.Delete)
-                    File.Delete(payloadInfo.Path);
+                using (request.GetResponse()) { }                
             }
 
             Console.WriteLine("Pushbaby.Client:: Uploaded payload.");
@@ -121,9 +113,9 @@ namespace Pushbaby.Client
         }
 
         [Conditional("DEBUG")]
-        static void WaitForServerToStart()
+        static void WaitForServerToStartIfDebugging()
         {
-            Thread.Sleep(1000);
+            Thread.Sleep(2000);
         } 
 
         /// <summary>
@@ -137,7 +129,6 @@ namespace Pushbaby.Client
                     {
                         Name = Path.GetFileName(payload),
                         Path = payload,
-                        Delete = false,
                     };
             }
             else if (Directory.Exists(payload))
@@ -154,7 +145,7 @@ namespace Pushbaby.Client
                     {
                         Name = Path.GetFileName(payload) + ".zip",
                         Path = path,
-                        Delete = true,
+                        Disposer = () => File.Delete(path)
                     };
             }
             else

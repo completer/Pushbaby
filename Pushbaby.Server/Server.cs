@@ -1,6 +1,5 @@
-﻿using System;
-using System.IO;
-using System.Net;
+﻿using System.Configuration;
+using System.Linq;
 using System.Threading;
 using Ninject;
 using Pushbaby.Server.Injection;
@@ -17,8 +16,10 @@ namespace Pushbaby.Server
         {
             Log4NetConfiguration.Configure();
 
-            var settings = new Settings();
-            settings.Validate();
+            var settings = (Settings) ConfigurationManager.GetSection("pushbaby");
+
+            if (settings == null)
+                throw new ConfigurationErrorsException("No 'pushbaby' config section was found. See documentation.");
 
             var kernel = new StandardKernel();
             kernel.Load<NinjectBindings>();
@@ -30,36 +31,29 @@ namespace Pushbaby.Server
 
         readonly ILog log;
         readonly Settings settings;
-        readonly IRouterFactory routerFactory;
+        readonly IEndpointFactory endpointFactory;
+        readonly IThreadManager threadManager;
 
-        public Server(ILog log, Settings settings, IRouterFactory routerFactory)
+        public Server(ILog log, Settings settings, IEndpointFactory endpointFactory, IThreadManager threadManager)
         {
             this.log = log;
             this.settings = settings;
-            this.routerFactory = routerFactory;
+            this.endpointFactory = endpointFactory;
+            this.threadManager = threadManager;
         }
 
         public void Run()
         {
             this.log.Info("Server is starting up...");
 
-            Directory.CreateDirectory(settings.DeploymentDirectory);
-
-            using (var listener = new HttpListener())
+            foreach (var endpointSettings in this.settings.EndpointSettingsCollection.Cast<EndpointSettings>())
             {
-                string uriPrefix = settings.UriPrefix ?? "http://+:80/pushbaby/";
-
-                listener.Prefixes.Add(uriPrefix);
-                listener.Start();
-                this.log.InfoFormat("Server has started up. Listening on {0}", uriPrefix);
-
-                while (true)
-                {
-                    var context = listener.GetContext();
-                    var router = this.routerFactory.Create(context);
-                    ThreadPool.QueueUserWorkItem(x => router.Route());
-                }
+                var endpoint = this.endpointFactory.Create(endpointSettings);
+                this.threadManager.Create(endpoint.Listen);
             }
+
+            this.log.InfoFormat("Server has started up with {0} endpoint(s).", this.settings.EndpointSettingsCollection.Count);
+
         }
     }
 

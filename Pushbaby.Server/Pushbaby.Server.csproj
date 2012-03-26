@@ -13,6 +13,7 @@
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -25,7 +26,6 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -74,8 +74,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Router.cs" />
-    <Compile Include="RouterFactory.cs" />
+    <Compile Include="Endpoint.cs" />
+    <Compile Include="EndpointFactory.cs" />
+    <Compile Include="FileSystem.cs" />
+    <Compile Include="Listener.cs" />
+    <Compile Include="ListenerFactory.cs" />
     <Compile Include="Handler.cs" />
     <Compile Include="HandlerFactory.cs" />
     <Compile Include="Injection\NinjectBindings.cs" />
@@ -85,9 +88,12 @@
     <Compile Include="Session.cs" />
     <Compile Include="SessionManager.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="ThreadManager.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

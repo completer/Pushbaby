@@ -1,27 +1,26 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Net;
 using Pushbaby.Shared;
-using log4net;
 
 namespace Pushbaby.Server
 {
-    public class SessionManager
+    public interface ISessionManager
     {
-        readonly ILog log;
+        Session Get(IContext context);
+        void Put(Session session);
+        void Remove(Session session);
+    }
+
+    public class SessionManager : ISessionManager
+    {
         readonly ConcurrentDictionary<string, Session> sessions = new ConcurrentDictionary<string, Session>();
 
-        public SessionManager(ILog log)
-        {
-            this.log = log;
-        }
-
-        public Session Get(HttpListenerContext context)
+        public Session Get(IContext context)
         {
             this.DeleteOldSessions();
 
-            string key = context.Request.Headers["session"];
+            string key = context.RequestHeaders["session"];
 
             if (key == null)
             {

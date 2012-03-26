@@ -4,7 +4,17 @@ using System.Collections.Generic;
 
 namespace Pushbaby.Server
 {
-    public class Session
+    public interface ISession
+    {
+        string Key { get; }
+        DateTime CreatedOnUtc { get; }
+        State State { get; set; }
+        
+        void WriteProgress(string s);
+        string ReadProgress();
+    }
+
+    public class Session : ISession
     {
         readonly ConcurrentQueue<string> progress = new ConcurrentQueue<string>();
 
