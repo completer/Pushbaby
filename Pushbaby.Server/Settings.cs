@@ -26,8 +26,8 @@ namespace Pushbaby.Server
                 if (String.IsNullOrWhiteSpace(settings.SharedSecret) || settings.SharedSecret.Length < 16)
                     settings.ThrowValidationException("You must specify a 'sharedSecret' setting of at least 16 characters.");
 
-                if (String.IsNullOrWhiteSpace(settings.PayloadDirectory))
-                    settings.ThrowValidationException("You must specify a 'payloadDirectory' setting.");
+                if (String.IsNullOrWhiteSpace(settings.DeploymentDirectory))
+                    settings.ThrowValidationException("You must specify a 'deploymentDirectory' setting.");
             }
         }
     }
@@ -48,11 +48,11 @@ namespace Pushbaby.Server
             set { base["sharedSecret"] = value; }
         }
 
-        [ConfigurationProperty("payloadDirectory", IsRequired = true)]
-        public string PayloadDirectory
+        [ConfigurationProperty("deploymentDirectory", IsRequired = true)]
+        public string DeploymentDirectory
         {
-            get { return (string) base["payloadDirectory"]; }
-            set { base["payloadDirectory"] = value; }
+            get { return (string) base["deploymentDirectory"]; }
+            set { base["deploymentDirectory"] = value; }
         }
 
         [ConfigurationProperty("executableFile")]

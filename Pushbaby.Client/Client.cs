@@ -8,6 +8,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Ionic.Zip;
 using Pushbaby.Shared;
 
@@ -17,27 +18,27 @@ namespace Pushbaby.Client
     {
         static void Main(string[] args)
         {
-            string payload  = args.ElementAt(0);
-            string destination = args.ElementAtOrDefault(1);
+            string payload  = args.FirstOrDefault();
+            var destinations = args.Skip(1).ToList();
 
             if (payload == null)
                 throw new ArgumentException("You must specify a payload file or directory path.");
 
-            if (destination == null)
-                throw new ArgumentException("You must specify a destination URL.");
+            if (!destinations.Any())
+                throw new ArgumentException("You must specify at least one destination URL.");
 
-            new Client(new Settings(), payload, destination).Run();
+            new Client(new Settings(), payload, destinations).Run();
         }
 
         readonly Settings settings;
         readonly string payload;
-        readonly string destination;
+        readonly List<string> destinations;
 
-        public Client(Settings settings, string payload, string destination)
+        public Client(Settings settings, string payload, List<string> destinations)
         {
             this.settings = settings;
             this.payload = payload;
-            this.destination = destination;
+            this.destinations = destinations;
         }
 
         public void Run()
@@ -46,19 +47,22 @@ namespace Pushbaby.Client
             this.settings.Validate();
             ServicePointManager.Expect100Continue = false;
 
-            string session = this.ObtainSession();
-            PostPayload(session);
-            GetProgressUntilDone(session);
+            Parallel.ForEach(this.destinations, destination =>
+                {
+                    string session = this.ObtainSession(destination);
+                    PostPayload(destination, session);
+                    GetProgressUntilDone(destination, session);
+                });
         }
 
-        string ObtainSession()
+        string ObtainSession(string destination)
         {
             return new WebClient().UploadString(destination, "hello");
         }
 
-        void PostPayload(string session)
+        void PostPayload(string destination, string session)
         {
-            Console.WriteLine("Pushbaby.Client:: Uploading payload...");
+            Console.WriteLine(destination + ":: Uploading payload...");
 
             using (var payloadInfo = this.PreparePayload())
             {
@@ -87,10 +91,10 @@ namespace Pushbaby.Client
                 using (request.GetResponse()) { }                
             }
 
-            Console.WriteLine("Pushbaby.Client:: Uploaded payload.");
+            Console.WriteLine(destination + ":: Uploaded payload.");
         }
 
-        void GetProgressUntilDone(string session)
+        void GetProgressUntilDone(string destination, string session)
         {
             string state = null;
 
@@ -104,8 +108,12 @@ namespace Pushbaby.Client
                 {
                     // todo: ensure that progress reports are sequential
                     state = response.Headers["state"];
-                    string content = reader.ReadToEnd();
-                    Console.WriteLine(String.IsNullOrEmpty(content) ? "Pushbaby.Client:: ..." : content);
+
+                    while (!reader.EndOfStream)
+                    {
+                        string line = reader.ReadLine();
+                        Console.WriteLine(destination + ":: " + line);
+                    }
                 }
 
                 Thread.Sleep(this.settings.PollIntervalInSeconds * 1000);

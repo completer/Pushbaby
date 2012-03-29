@@ -28,7 +28,7 @@ namespace Pushbaby.Server
 
         public void Listen()
         {
-            this.fileSystem.CreateDirectory(this.settings.PayloadDirectory);
+            this.fileSystem.CreateDirectory(this.settings.DeploymentDirectory);
 
             this.listener.AddPrefix(this.settings.Uri);
             this.listener.Start();
@@ -36,7 +36,7 @@ namespace Pushbaby.Server
 
             while (true)
             {
-                var context = this.listener.GetContext();
+                var context = this.listener.GetContext(); // blocks until http request is received
                 var handler = this.handlerFactory.Create(this.settings, context);
                 this.threadManager.Queue(handler.Handle);
             }

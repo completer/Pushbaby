@@ -30,7 +30,7 @@ namespace Pushbaby.Server
 
         public void WriteProgress(string s)
         {
-            this.progress.Enqueue("Pushbaby.Server:: " + s);
+            this.progress.Enqueue(s);
         }
 
         public string ReadProgress()

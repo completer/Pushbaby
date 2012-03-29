@@ -13,17 +13,17 @@ namespace Pushbaby.Server
     {
         readonly ILog log;
         readonly EndpointSettings settings;
-        readonly IContext context;
         readonly ISessionStore sessionStore;
         readonly IThreadManager threadManager;
+        readonly IContext context;
 
-        public Handler(ILog log, EndpointSettings settings, IContext context, ISessionStore sessionStore, IThreadManager threadManager)
+        public Handler(ILog log, EndpointSettings settings, ISessionStore sessionStore, IThreadManager threadManager, IContext context)
         {
             this.log = log;
             this.settings = settings;
-            this.context = context;
             this.sessionStore = sessionStore;
             this.threadManager = threadManager;
+            this.context = context;
         }
 
         public void Handle()
@@ -92,11 +92,6 @@ namespace Pushbaby.Server
             this.WriteResponse(session, session.ReadProgress());
         }
 
-        public void HandleError(ISession session)
-        {
-            this.WriteResponse(session, "Pushbaby.Server:: Unhandled exception. See server log.");
-        }
-
         string SavePayloadToDisk(ISession session)
         {
             session.State = State.Uploading;
@@ -114,7 +109,7 @@ namespace Pushbaby.Server
             if (String.IsNullOrWhiteSpace(filename))
                 throw new ApplicationException("Empty filename was given.");
 
-            string path = Path.Combine(this.settings.PayloadDirectory, filename);
+            string path = Path.Combine(this.settings.DeploymentDirectory, filename);
 
             using (var output = File.Create(path))
             using (var input = new CryptoStream(context.RequestStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
@@ -136,7 +131,7 @@ namespace Pushbaby.Server
             {
                 using (var zip = new ZipFile(path))
                 {
-                    finalPayloadPath = Path.Combine(this.settings.PayloadDirectory, Path.GetFileNameWithoutExtension(filename));
+                    finalPayloadPath = Path.Combine(this.settings.DeploymentDirectory, Path.GetFileNameWithoutExtension(filename));
                     zip.ExtractAll(finalPayloadPath, ExtractExistingFileAction.OverwriteSilently);
                 }
                 File.Delete(path);
@@ -177,12 +172,9 @@ namespace Pushbaby.Server
         {
             this.context.ResponseHeaders.Add("state", session.State.ToString());
 
-            var bytes = Encoding.UTF8.GetBytes(s);
-
-            using (var output = this.context.ResponseStream)
+            using (var writer = new StreamWriter(this.context.ResponseStream))
             {
-                this.context.ResponseLength = bytes.Length;
-                output.Write(bytes, 0, bytes.Length);
+                writer.Write(s);
             }
         }
     }
