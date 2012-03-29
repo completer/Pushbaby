@@ -162,6 +162,8 @@ namespace Pushbaby.Server
                 if (p.ExitCode > 0)
                 {
                     session.WriteProgress("Exited with code " + p.ExitCode);
+                    session.State = State.Failed;
+                    return;
                 }
             }
 

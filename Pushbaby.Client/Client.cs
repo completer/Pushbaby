@@ -98,7 +98,7 @@ namespace Pushbaby.Client
         {
             string state = null;
 
-            while (state != "Executed")
+            while (state != "Executed" && state != "Failed")
             {
                 var request = WebRequest.Create(destination);
                 request.Headers.Add("session", session);
@@ -114,6 +114,9 @@ namespace Pushbaby.Client
                         string line = reader.ReadLine();
                         Console.WriteLine(destination + ":: " + line);
                     }
+
+                    if (state == "Failed")
+                        throw new ApplicationException(destination + ":: Execution of deployment script failed.");
                 }
 
                 Thread.Sleep(this.settings.PollIntervalInSeconds * 1000);
