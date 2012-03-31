@@ -12,7 +12,7 @@ namespace Pushbaby.Client
 
         public int PollIntervalInSeconds
         {
-            get { return Convert.ToInt32(ConfigurationManager.AppSettings["PollIntervalInSeconds"] ?? "5"); }
+            get { return Convert.ToInt32(ConfigurationManager.AppSettings["pollIntervalInSeconds"] ?? "5"); }
         }
 
         public void Validate()
