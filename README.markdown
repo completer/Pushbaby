@@ -26,25 +26,21 @@ How it works
 2. On the destination server, Pushbaby.Service executes your own custom deployment script.
 3. The standard output is streamed back to your build server through Pushbaby.Client.
 
-Additional features
--------------------
-
-* Build output compession
-* Multiple parallel destination support
-* "Snaked" deployment directories for atomic activation
+**Additional features** include payload compession, parallel destination uploading and "snaked" deployment directories for atomic activation.
 
 Pushbaby **doesn't help** with specific deployment tasks like web server configuration. It just executes your bat file (or whatever) on the destination server.
 
 How to use Pushbaby
 -------------------
 
-Put the Pushbaby.Client binaries folder on your build server.  
-Put the Pushbaby.Service binaries folder on your destination server(s) and install.
+Put the Pushbaby.Client folder on your build server.  
+Put the Pushbaby.Service folder on your destination server(s) and install (see below).  
+You can ignore the Pushbaby.Server folder unless you want to quickly run the server as a console app.
 
-How to install the service
+How to prepare the service
 --------------------------
 
-In the **service** app.config, set the values:
+In the `Pushbaby.Service.exe.config`, set the values:
 
 - `uri` - the URI to listen on. See MSDN for the http.sys [prefix format](http://msdn.microsoft.com/en-us/library/system.net.httplistenerprefixcollection.add.aspx).
 - `sharedSecret` - an encryption key for secure communication over the network.
@@ -59,7 +55,7 @@ In the **service** app.config, set the values:
                   executableFile="c:\deployments\deployment-script.bat" />
       </endpoints>
     </pushbaby>
-  
+
 The path to the uploaded payload is passed as the only argument to the executable file.
 
 Open an Administrator command window.  
@@ -75,7 +71,7 @@ To uninstall use the `/u` switch.
 How to use the client
 ---------------------
 
-In the ***client** app.config, set the value:
+In the `Pushbaby.Client.exe.config`, set the value:
 
 - `SharedSecret` - to the same as you used on the server.
 
@@ -111,9 +107,11 @@ The author is not a security expert and the code has not been reviewed by a secu
 Praise for Pushbaby
 -------------------
 
-> This is a terrible idea.    
+> This is a terrible idea.
+
 *Eric Lippert*
 
 > You should of used SSH.    
+
 *Colin from IT*
  

@@ -7,7 +7,7 @@ namespace Pushbaby.Client
     {
         public string SharedSecret
         {
-            get { return ConfigurationManager.AppSettings["SharedSecret"]; }
+            get { return ConfigurationManager.AppSettings["sharedSecret"]; }
         }
 
         public int PollIntervalInSeconds

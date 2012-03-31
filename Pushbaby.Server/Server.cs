@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.Linq;
 using Ninject;
 using Ninject.Extensions.Factory;
@@ -45,13 +46,20 @@ namespace Pushbaby.Server
         {
             this.log.Info("Server is starting up...");
 
-            foreach (var endpointSettings in this.settings.EndpointSettingsCollection.Cast<EndpointSettings>())
+            try
             {
-                var endpoint = this.endpointFactory.Create(endpointSettings);
-                this.threadManager.Create(endpoint.Listen);
-            }
+                foreach (var endpointSettings in this.settings.EndpointSettingsCollection.Cast<EndpointSettings>())
+                {
+                    var endpoint = this.endpointFactory.Create(endpointSettings);
+                    this.threadManager.Create(endpoint.Listen);
+                }
 
-            this.log.InfoFormat("Server has started up with {0} endpoint(s).", this.settings.EndpointSettingsCollection.Count);
+                this.log.InfoFormat("Server has started up with {0} endpoint(s).", this.settings.EndpointSettingsCollection.Count);
+            }
+            catch (Exception ex)
+            {
+                this.log.Fatal("Unhandled exception", ex);
+            }
         }
     }
 }
