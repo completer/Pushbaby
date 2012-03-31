@@ -33,3 +33,6 @@ obj/
 #Tooling
 _ReSharper*/
 *.resharper
+
+#build
+build/output
