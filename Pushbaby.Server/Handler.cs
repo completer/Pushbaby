@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Ionic.Zip;
 using Pushbaby.Shared;
 using log4net;
@@ -16,14 +19,16 @@ namespace Pushbaby.Server
         readonly ISessionStore sessionStore;
         readonly IThreadManager threadManager;
         readonly IContext context;
+        readonly IFileSystem fileSystem;
 
-        public Handler(ILog log, EndpointSettings settings, ISessionStore sessionStore, IThreadManager threadManager, IContext context)
+        public Handler(ILog log, EndpointSettings settings, ISessionStore sessionStore, IThreadManager threadManager, IContext context, IFileSystem fileSystem)
         {
             this.log = log;
             this.settings = settings;
             this.sessionStore = sessionStore;
             this.threadManager = threadManager;
             this.context = context;
+            this.fileSystem = fileSystem;
         }
 
         public void Handle()
@@ -81,7 +86,7 @@ namespace Pushbaby.Server
             this.log.InfoFormat("Handling payload for session {0}...", session.Key);
 
             string payloadPath = this.SavePayloadToDisk(session);
-            this.threadManager.Queue(() => this.ExecuteBatFile(session, payloadPath));
+            this.threadManager.Queue(() => this.ExecuteBatFileAndDeleteOldPayloadDirectories(session, payloadPath));
             this.WriteResponse(session, "OK");
         }
 
@@ -96,53 +101,38 @@ namespace Pushbaby.Server
         {
             session.State = State.Uploading;
 
-            // todo: let's split method this out a bit
-
             var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session.Key);
 
-            string filename = aes.DecryptString(context.RequestHeaders["filename"] ?? String.Empty);
-            string filenameHash = aes.DecryptString(context.RequestHeaders["filename-hash"] ?? String.Empty);
+            string temp = Path.Combine(this.settings.DeploymentDirectory, this.GetNextPayloadDirectory() + ".zip");
+            string path = Path.Combine(this.settings.DeploymentDirectory, this.GetNextPayloadDirectory());
 
-            if (HashUtility.ComputeStringHash(filename) != filenameHash)
-                throw new ApplicationException("Filename hash did not match.");
-
-            if (String.IsNullOrWhiteSpace(filename))
-                throw new ApplicationException("Empty filename was given.");
-
-            string path = Path.Combine(this.settings.DeploymentDirectory, filename);
-
-            using (var output = File.Create(path))
+            using (var output = File.Create(temp))
             using (var input = new CryptoStream(context.RequestStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
             {
                 StreamUtility.Copy(input, output);
             }
 
-            string payloadHash = aes.DecryptString(context.RequestHeaders["payload-hash"] ?? String.Empty);
+            string hash = aes.DecryptString(context.RequestHeaders["hash"]);
 
-            if (HashUtility.ComputeFileHash(path) != payloadHash)
+            if (HashUtility.ComputeFileHash(temp) != hash)
                 throw new ApplicationException("Payload hash did not match.");
 
-            if (new FileInfo(path).Length < 16)
+            if (new FileInfo(temp).Length < 16)
                 throw new ApplicationException("Payload was too small.");
 
-            string finalPayloadPath = path;
-            string extension = Path.GetExtension(filename);
-            if (extension != null && extension.ToLowerInvariant() == ".zip")
+            using (var zip = new ZipFile(temp))
             {
-                using (var zip = new ZipFile(path))
-                {
-                    finalPayloadPath = Path.Combine(this.settings.DeploymentDirectory, Path.GetFileNameWithoutExtension(filename));
-                    zip.ExtractAll(finalPayloadPath, ExtractExistingFileAction.OverwriteSilently);
-                }
-                File.Delete(path);
+                zip.ExtractAll(path, ExtractExistingFileAction.OverwriteSilently);
             }
+
+            File.Delete(temp);
 
             session.State = State.Uploaded;
 
-            return finalPayloadPath;
+            return path;
         }
 
-        void ExecuteBatFile(ISession session, string payloadPath)
+        void ExecuteBatFileAndDeleteOldPayloadDirectories(ISession session, string payloadPath)
         {
             session.State = State.Executing;
 
@@ -168,6 +158,9 @@ namespace Pushbaby.Server
             }
 
             session.State = State.Executed;
+
+            // only delete old directories if successful
+            this.DeleteOldPayloadDirectories();
         }
 
         void WriteResponse(ISession session, string s)
@@ -178,6 +171,37 @@ namespace Pushbaby.Server
             {
                 writer.Write(s);
             }
+        }
+
+        string GetNextPayloadDirectory()
+        {
+            return "pushbaby." + (this.GetPayloadDirectoriesInAscendingOrder().Select(d => d.Item3).LastOrDefault() + 1);
+        }
+
+        void DeleteOldPayloadDirectories()
+        {
+            // leave the last 5 directories there for extra safety
+            foreach (var d in this.GetPayloadDirectoriesInAscendingOrder().Reverse().Skip(this.settings.SnakeLength))
+            {
+                Directory.Delete(d.Item1, true);
+            }
+        }
+
+        IEnumerable<Tuple<string, string, int>> GetPayloadDirectoriesInAscendingOrder()
+        {
+            var q = from path in this.fileSystem.GetDirectories(this.settings.DeploymentDirectory, "pushbaby.*")
+                    let name = Path.GetFileName(path)
+                    let number = GetPayloadDirectoryNumber(name)
+                    orderby number
+                    select new Tuple<string, string, int>(path, name, number);
+
+            return q;
+        }
+
+        static int GetPayloadDirectoryNumber(string name)
+        {
+            string number = Regex.Match(name, @"pushbaby\.(\d+)", RegexOptions.IgnoreCase).Groups[1].Value;
+            return Convert.ToInt32(number);
         }
     }
 }

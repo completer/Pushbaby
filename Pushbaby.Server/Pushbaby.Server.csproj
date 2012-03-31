@@ -129,9 +129,14 @@
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
-<Target Name="AfterBuild" Condition=" '$(Configuration)' == 'Release' ">
- <Exec Command="&quot;$(MSBuildProjectPath)..\Tools\Ilmerge.exe&quot; /ndebug /out:@(MainAssembly) &quot;@(IntermediateAssembly)&quot; @(ReferenceCopyLocalPaths->'&quot;%(FullPath)&quot;', ' ')" />
- <Delete Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
-</Target>
   -->
+<Target Name="AfterBuild" Condition=" '$(Configuration)' == 'Release' ">
+    <ItemGroup>
+        <ForMerging Include="@(ReferenceCopyLocalPaths)" Condition = "%(Extension) == '.dll' OR %(Extension) == '.exe'"/>
+    </ItemGroup>
+    <Message Importance="High" Text="@(ForMerging->'%(FullPath)', '&#x0d;&#x0a;')" />
+    <Exec Command="&quot;$(MSBuildProjectPath)..\build\tools\ilmerge.exe&quot; /ndebug /targetplatform:&quot;v4,C:\Windows\Microsoft.NET\Framework\v4.0.30319&quot; /out:@(MainAssembly) &quot;@(IntermediateAssembly)&quot; @(ForMerging->'&quot;%(FullPath)&quot;', ' ')" />
+    <Delete Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
+</Target>
+
 </Project>

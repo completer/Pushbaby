@@ -73,7 +73,14 @@
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
-  <Target Name="AfterBuild">
-  </Target>
   -->
+  <Target Name="AfterBuild" Condition=" '$(Configuration)' == 'Release' ">
+  
+    <ItemGroup>
+        <ForMerging Include="@(ReferenceCopyLocalPaths)" Condition = "%(Extension) == '.dll' OR %(Extension) == '.exe'"/>
+    </ItemGroup>
+    <Exec Command="&quot;$(MSBuildProjectPath)..\build\tools\ilmerge.exe&quot; /ndebug /targetplatform:&quot;v4,C:\Windows\Microsoft.NET\Framework\v4.0.30319&quot; /out:@(MainAssembly) &quot;@(IntermediateAssembly)&quot; @(ForMerging->'&quot;%(FullPath)&quot;', ' ')" />
+    <Delete Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
+
+  </Target>
 </Project>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <PropertyGroup>
+        <BuildOutputPath>$(MSBuildProjectDirectory)\output</BuildOutputPath>
+        <Configuration>Release</Configuration>
+    </PropertyGroup>
+
+    <Target Name="Build">
+
+        <RemoveDir Directories="$(BuildOutputPath)" Condition=" Exists('$(BuildOutputPath)') " />
+
+        <MSBuild Projects="..\Pushbaby.Client\Pushbaby.Client.csproj" Properties="Configuration=$(Configuration)" />
+        <MSBuild Projects="..\Pushbaby.Server\Pushbaby.Server.csproj" Properties="Configuration=$(Configuration)" />
+        <MSBuild Projects="..\Pushbaby.Service\Pushbaby.Service.csproj" Properties="Configuration=$(Configuration)" />
+        
+        <ItemGroup>
+            <ClientDeploymentFiles Include="..\Pushbaby.Client\bin\Release\Pushbaby.Client.exe*" />
+            <ServerDeploymentFiles Include="..\Pushbaby.Server\bin\Release\Pushbaby.Server.exe*" />
+            <ServiceDeploymentFiles Include="..\Pushbaby.Service\bin\Release\Pushbaby.Service.exe*" />
+        </ItemGroup>
+
+        <Copy SourceFiles="@(ClientDeploymentFiles)"
+            DestinationFiles="@(ClientDeploymentFiles->'output\Pushbaby.Client\%(RecursiveDir)%(Filename)%(Extension)')" />
+        <Copy SourceFiles="@(ServerDeploymentFiles)"
+            DestinationFiles="@(ServerDeploymentFiles->'output\Pushbaby.Server\%(RecursiveDir)%(Filename)%(Extension)')" />
+        <Copy SourceFiles="@(ServiceDeploymentFiles)"
+            DestinationFiles="@(ServiceDeploymentFiles->'output\Pushbaby.Service\%(RecursiveDir)%(Filename)%(Extension)')" />
+    
+    </Target>
+</Project>

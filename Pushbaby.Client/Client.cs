@@ -72,14 +72,9 @@ namespace Pushbaby.Client
 
                 var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session);
 
-                // send the filename and its hash
-                request.Headers.Add("filename", aes.EncryptString(payloadInfo.Name));
-                string filenameHash = HashUtility.ComputeStringHash(payloadInfo.Name);
-                request.Headers.Add("filename-hash", aes.EncryptString(filenameHash));
-
-                // send the payload hash
-                string payloadHash = HashUtility.ComputeFileHash(payloadInfo.Path);
-                request.Headers.Add("payload-hash", aes.EncryptString(payloadHash));
+                // send the hash
+                string hash = HashUtility.ComputeFileHash(payloadInfo.Path);
+                request.Headers.Add("hash", aes.EncryptString(hash));
 
                 // send the payload
                 using (var input = File.OpenRead(payloadInfo.Path))
@@ -138,7 +133,6 @@ namespace Pushbaby.Client
             {
                 return new PayloadInfo
                     {
-                        Name = Path.GetFileName(payload),
                         Path = payload,
                     };
             }
@@ -154,7 +148,6 @@ namespace Pushbaby.Client
 
                 return new PayloadInfo
                     {
-                        Name = Path.GetFileName(payload) + ".zip",
                         Path = path,
                         Disposer = () => File.Delete(path)
                     };

@@ -1,6 +1,7 @@
 ﻿using System.Configuration;
 using System.Linq;
 using Ninject;
+using Ninject.Extensions.Factory;
 using Pushbaby.Server.Injection;
 using Pushbaby.Server.Logging;
 using log4net;
@@ -19,6 +20,7 @@ namespace Pushbaby.Server
                 throw new ConfigurationErrorsException("No 'pushbaby' config section was found. See documentation.");
 
             var kernel = new StandardKernel();
+            kernel.Load<FuncModule>(); // need to load this manually when using ilmerge https://groups.google.com/forum/#!msg/ninject/CUBxmWubl60/5YAwFFobO18J
             kernel.Load<NinjectBindings>();
             kernel.Bind<Settings>().ToConstant(settings);
 

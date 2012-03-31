@@ -62,6 +62,13 @@ namespace Pushbaby.Server
             set { base["executableFile"] = value; }
         }
 
+        [ConfigurationProperty("snakeLength", IsRequired = false, DefaultValue = 5)]
+        public int SnakeLength
+        {
+            get { return (int) base["snakeLength"]; }
+            set { base["snakeLength"] = value; }
+        }
+
         internal void ThrowValidationException(string message)
         {
             throw new ConfigurationErrorsException(String.Format("Error validating endpoint '{0}'. ", this.Uri) + message);

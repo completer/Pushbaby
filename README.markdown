@@ -31,7 +31,7 @@ Additional features
 
 * Build output compession
 * Multiple parallel destination support
-* Circularly-buffered deployment directories for atomic web deployment
+* "Snaked" deployment directories for atomic activation
 
 Pushbaby **doesn't help** with specific deployment tasks like web server configuration. It just executes your bat file (or whatever) on the destination server.
 
