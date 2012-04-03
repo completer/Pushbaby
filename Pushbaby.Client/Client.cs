@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Ionic.Zip;
@@ -18,8 +19,12 @@ namespace Pushbaby.Client
     {
         static void Main(string[] args)
         {
-            string payload  = args.FirstOrDefault();
-            var destinations = args.Skip(1).ToList();
+            string payload = args.FirstOrDefault(a => !a.StartsWith("/"));
+            var destinations = args.Where(a => !a.StartsWith("/")).Skip(1).ToList();
+            string tag = (from a in args
+                          let match = Regex.Match(a, @"\/tag:(.+)")
+                          where match.Success
+                          select match.Groups[1].Value).SingleOrDefault();
 
             if (payload == null)
                 throw new ArgumentException("You must specify a payload file or directory path.");
@@ -27,17 +32,19 @@ namespace Pushbaby.Client
             if (!destinations.Any())
                 throw new ArgumentException("You must specify at least one destination URL.");
 
-            new Client(new Settings(), payload, destinations).Run();
+            new Client(new Settings(), payload, destinations, tag).Run();
         }
 
         readonly Settings settings;
         readonly string payload;
+        readonly string tag;
         readonly List<string> destinations;
 
-        public Client(Settings settings, string payload, List<string> destinations)
+        public Client(Settings settings, string payload, List<string> destinations, string tag)
         {
             this.settings = settings;
             this.payload = payload;
+            this.tag = tag;
             this.destinations = destinations;
         }
 
@@ -72,11 +79,13 @@ namespace Pushbaby.Client
 
                 var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session);
 
-                // send the hash
-                string hash = HashUtility.ComputeFileHash(payloadInfo.Path);
-                request.Headers.Add("hash", aes.EncryptString(hash));
+                // send the tag
+                string tagOrDefault = !String.IsNullOrWhiteSpace(tag) ? tag : payloadInfo.Name;
+                request.Headers.Add("tag", aes.EncryptString(tagOrDefault));
+                request.Headers.Add("tag-hash", aes.EncryptString(HashUtility.ComputeStringHash(tagOrDefault)));
 
                 // send the payload
+                request.Headers.Add("payload-hash", aes.EncryptString(HashUtility.ComputeFileHash(payloadInfo.Path)));
                 using (var input = File.OpenRead(payloadInfo.Path))
                 using (var output = new CryptoStream(request.GetRequestStream(), aes.CreateEncryptor(), CryptoStreamMode.Write))
                 {
@@ -133,6 +142,7 @@ namespace Pushbaby.Client
             {
                 return new PayloadInfo
                     {
+                        Name = Path.GetFileName(payload),
                         Path = payload,
                     };
             }
@@ -148,6 +158,7 @@ namespace Pushbaby.Client
 
                 return new PayloadInfo
                     {
+                        Name = Path.GetFileName(payload),
                         Path = path,
                         Disposer = () => File.Delete(path)
                     };
