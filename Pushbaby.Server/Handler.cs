@@ -103,8 +103,16 @@ namespace Pushbaby.Server
 
             var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session.Key);
 
-            string temp = Path.Combine(this.settings.DeploymentDirectory, this.GetNextPayloadDirectory() + ".zip");
-            string path = Path.Combine(this.settings.DeploymentDirectory, this.GetNextPayloadDirectory());
+            string tag = aes.DecryptString(context.RequestHeaders["tag"]);
+            string tagHash = aes.DecryptString(context.RequestHeaders["tag-hash"]);
+
+            if (String.IsNullOrWhiteSpace(tag))
+                throw new ApplicationException("Tag was empty");
+            if (HashUtility.ComputeStringHash(tag) != tagHash)
+                throw new ApplicationException("Tag hash did not match.");
+
+            string path = Path.Combine(this.settings.DeploymentDirectory, this.GetNextPayloadDirectory() + "-" + tag);
+            string temp = path + ".zip";
 
             using (var output = File.Create(temp))
             using (var input = new CryptoStream(context.RequestStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
@@ -112,7 +120,7 @@ namespace Pushbaby.Server
                 StreamUtility.Copy(input, output);
             }
 
-            string hash = aes.DecryptString(context.RequestHeaders["hash"]);
+            string hash = aes.DecryptString(context.RequestHeaders["payload-hash"]);
 
             if (HashUtility.ComputeFileHash(temp) != hash)
                 throw new ApplicationException("Payload hash did not match.");
@@ -175,7 +183,7 @@ namespace Pushbaby.Server
 
         string GetNextPayloadDirectory()
         {
-            return "pushbaby." + (this.GetPayloadDirectoriesInAscendingOrder().Select(d => d.Item3).LastOrDefault() + 1);
+            return "deployment." + (this.GetPayloadDirectoriesInAscendingOrder().Select(d => d.Item3).LastOrDefault() + 1);
         }
 
         void DeleteOldPayloadDirectories()
@@ -189,7 +197,7 @@ namespace Pushbaby.Server
 
         IEnumerable<Tuple<string, string, int>> GetPayloadDirectoriesInAscendingOrder()
         {
-            var q = from path in this.fileSystem.GetDirectories(this.settings.DeploymentDirectory, "pushbaby.*")
+            var q = from path in this.fileSystem.GetDirectories(this.settings.DeploymentDirectory, "deployment.*")
                     let name = Path.GetFileName(path)
                     let number = GetPayloadDirectoryNumber(name)
                     orderby number
@@ -200,7 +208,7 @@ namespace Pushbaby.Server
 
         static int GetPayloadDirectoryNumber(string name)
         {
-            string number = Regex.Match(name, @"pushbaby\.(\d+)", RegexOptions.IgnoreCase).Groups[1].Value;
+            string number = Regex.Match(name, @"deployment\.(\d+).*", RegexOptions.IgnoreCase).Groups[1].Value;
             return Convert.ToInt32(number);
         }
     }

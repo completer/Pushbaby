@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using Ninject;
 using Ninject.Extensions.Factory;
@@ -21,7 +22,7 @@ namespace Pushbaby.Server
                 throw new ConfigurationErrorsException("No 'pushbaby' config section was found. See documentation.");
 
             var kernel = new StandardKernel();
-            kernel.Load<FuncModule>(); // need to load this manually when using ilmerge https://groups.google.com/forum/#!msg/ninject/CUBxmWubl60/5YAwFFobO18J
+            LoadFuncModuleIfNotDebug(kernel);
             kernel.Load<NinjectBindings>();
             kernel.Bind<Settings>().ToConstant(settings);
 
@@ -60,6 +61,14 @@ namespace Pushbaby.Server
             {
                 this.log.Fatal("Unhandled exception", ex);
             }
+        }
+
+        static void LoadFuncModuleIfNotDebug(IKernel kernel)
+        {
+#if !DEBUG
+            // need to load this manually when using ilmerge https://groups.google.com/forum/#!msg/ninject/CUBxmWubl60/5YAwFFobO18J
+            kernel.Load<FuncModule>(); 
+#endif
         }
     }
 }
