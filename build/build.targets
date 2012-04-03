@@ -2,13 +2,12 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <PropertyGroup>
-        <BuildOutputPath>$(MSBuildProjectDirectory)\output</BuildOutputPath>
         <Configuration>Release</Configuration>
     </PropertyGroup>
 
     <Target Name="Build">
 
-        <RemoveDir Directories="$(BuildOutputPath)" Condition=" Exists('$(BuildOutputPath)') " />
+        <RemoveDir Directories="output" Condition=" Exists('output') " />
 
         <MSBuild Projects="..\Pushbaby.Client\Pushbaby.Client.csproj" Properties="Configuration=$(Configuration)" />
         <MSBuild Projects="..\Pushbaby.Server\Pushbaby.Server.csproj" Properties="Configuration=$(Configuration)" />
