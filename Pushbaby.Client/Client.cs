@@ -21,10 +21,15 @@ namespace Pushbaby.Client
         {
             string payload = args.FirstOrDefault(a => !a.StartsWith("/"));
             var destinations = args.Where(a => !a.StartsWith("/")).Skip(1).ToList();
+
             string tag = (from a in args
                           let match = Regex.Match(a, @"\/tag:(.+)")
                           where match.Success
                           select match.Groups[1].Value).SingleOrDefault();
+
+            bool verbose = (from a in args
+                            where a.StartsWith("/verbose")
+                            select true).SingleOrDefault();
 
             if (payload == null)
                 throw new ArgumentException("You must specify a payload file or directory path.");
@@ -32,20 +37,22 @@ namespace Pushbaby.Client
             if (!destinations.Any())
                 throw new ArgumentException("You must specify at least one destination URL.");
 
-            new Client(new Settings(), payload, destinations, tag).Run();
+            new Client(new Settings(), payload, destinations, tag, verbose).Run();
         }
 
         readonly Settings settings;
         readonly string payload;
         readonly string tag;
         readonly List<string> destinations;
+        readonly bool verbose;
 
-        public Client(Settings settings, string payload, List<string> destinations, string tag)
+        public Client(Settings settings, string payload, List<string> destinations, string tag, bool verbose)
         {
             this.settings = settings;
             this.payload = payload;
             this.tag = tag;
             this.destinations = destinations;
+            this.verbose = verbose;
         }
 
         public void Run()
@@ -54,46 +61,47 @@ namespace Pushbaby.Client
             this.settings.Validate();
             ServicePointManager.Expect100Continue = false;
 
-            Parallel.ForEach(this.destinations, destination =>
-                {
-                    string session = this.ObtainSession(destination);
-                    PostPayload(destination, session);
-                    GetProgressUntilDone(destination, session);
-                });
+            using (var payloadInfo = this.PreparePayload())
+            {
+                Parallel.ForEach(this.destinations, destination =>
+                    {
+                        string session = this.ObtainSession(destination);
+                        PostPayload(payloadInfo, destination, session);
+                        GetProgressUntilDone(destination, session);
+                    });
+            }
         }
 
         string ObtainSession(string destination)
         {
+            Console.WriteLine(destination + ":: Obtaining session...");
             return new WebClient().UploadString(destination, "hello");
         }
 
-        void PostPayload(string destination, string session)
+        void PostPayload(PayloadInfo payloadInfo, string destination, string session)
         {
             Console.WriteLine(destination + ":: Uploading payload...");
 
-            using (var payloadInfo = this.PreparePayload())
+            var request = WebRequest.Create(destination);
+            request.Method = "POST";
+            request.Headers.Add("session", session);
+
+            var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session);
+
+            // send the tag
+            string tagOrDefault = !String.IsNullOrWhiteSpace(tag) ? tag : payloadInfo.Name;
+            request.Headers.Add("tag", aes.EncryptString(tagOrDefault));
+            request.Headers.Add("tag-hash", aes.EncryptString(HashUtility.ComputeStringHash(tagOrDefault)));
+
+            // send the payload
+            request.Headers.Add("payload-hash", aes.EncryptString(HashUtility.ComputeFileHash(payloadInfo.Path)));
+            using (var input = File.OpenRead(payloadInfo.Path))
+            using (var output = new CryptoStream(request.GetRequestStream(), aes.CreateEncryptor(), CryptoStreamMode.Write))
             {
-                var request = WebRequest.Create(destination);
-                request.Method = "POST";
-                request.Headers.Add("session", session);
-
-                var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session);
-
-                // send the tag
-                string tagOrDefault = !String.IsNullOrWhiteSpace(tag) ? tag : payloadInfo.Name;
-                request.Headers.Add("tag", aes.EncryptString(tagOrDefault));
-                request.Headers.Add("tag-hash", aes.EncryptString(HashUtility.ComputeStringHash(tagOrDefault)));
-
-                // send the payload
-                request.Headers.Add("payload-hash", aes.EncryptString(HashUtility.ComputeFileHash(payloadInfo.Path)));
-                using (var input = File.OpenRead(payloadInfo.Path))
-                using (var output = new CryptoStream(request.GetRequestStream(), aes.CreateEncryptor(), CryptoStreamMode.Write))
-                {
-                    StreamUtility.Copy(input, output);
-                }
-
-                using (request.GetResponse()) { }                
+                StreamUtility.Copy(input, output);
             }
+
+            using (request.GetResponse()) { }                
 
             Console.WriteLine(destination + ":: Uploaded payload.");
         }
@@ -138,6 +146,8 @@ namespace Pushbaby.Client
         /// </summary>
         PayloadInfo PreparePayload()
         {
+            Console.WriteLine("Preparing payload...");
+
             if (File.Exists(payload))
             {
                 return new PayloadInfo
@@ -148,10 +158,20 @@ namespace Pushbaby.Client
             }
             else if (Directory.Exists(payload))
             {
-                string path = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
+                string path = Path.GetTempFileName();
                 
                 using (var zip = new ZipFile())
                 {
+                    if (this.verbose)
+                    {
+                        zip.SaveProgress += (sender, e) =>
+                        {
+                            Console.WriteLine(string.Format("Event: {0}. Items Saved: {1} of {2}", e.EventType, e.EntriesSaved, e.EntriesTotal));
+                            if (null != e.CurrentEntry)
+                                Console.WriteLine(e.CurrentEntry.FileName);
+                        };
+                    }
+
                     zip.AddDirectory(payload);
                     zip.Save(path);
                 }
