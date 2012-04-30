@@ -59,7 +59,8 @@ namespace Pushbaby.Server
             }
             catch (Exception ex)
             {
-                this.log.Fatal("Unhandled exception", ex);
+                this.log.Fatal("Unhandled exception.", ex);
+                throw;
             }
         }
 

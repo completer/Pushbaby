@@ -63,6 +63,8 @@ namespace Pushbaby.Server
                 {
                     writer.Write("Pushbaby.Server:: Unhandled exception. See server log.");
                 }
+
+                throw;
             }
         }
 
@@ -142,33 +144,41 @@ namespace Pushbaby.Server
 
         void ExecuteBatFileAndDeleteOldPayloadDirectories(ISession session, string payloadPath)
         {
-            session.State = State.Executing;
-
-            using (var p = new Process { StartInfo = new ProcessStartInfo() })
+            try
             {
-                p.StartInfo.FileName = this.settings.ExecutableFile;
-                p.StartInfo.UseShellExecute = false;
-                p.StartInfo.RedirectStandardOutput = true;
-                p.StartInfo.Arguments = payloadPath.Enquote();
-                p.OutputDataReceived += (s, e) => session.WriteProgress(e.Data);
+                session.State = State.Executing;
 
-                session.WriteProgress("Running executable file...");
-                p.Start();
-                p.BeginOutputReadLine();
-                p.WaitForExit();
-
-                if (p.ExitCode > 0)
+                using (var p = new Process { StartInfo = new ProcessStartInfo() })
                 {
-                    session.WriteProgress("Exited with code " + p.ExitCode);
-                    session.State = State.Failed;
-                    return;
+                    p.StartInfo.FileName = this.settings.ExecutableFile;
+                    p.StartInfo.UseShellExecute = false;
+                    p.StartInfo.RedirectStandardOutput = true;
+                    p.StartInfo.Arguments = payloadPath.Enquote();
+                    p.OutputDataReceived += (s, e) => session.WriteProgress(e.Data);
+
+                    session.WriteProgress("Running executable file...");
+                    p.Start();
+                    p.BeginOutputReadLine();
+                    p.WaitForExit();
+
+                    if (p.ExitCode > 0)
+                    {
+                        session.WriteProgress("Exited with code " + p.ExitCode);
+                        session.State = State.Failed;
+                        return;
+                    }
                 }
+
+                session.State = State.Executed;
+
+                // only delete old directories if successful
+                this.DeleteOldPayloadDirectories();
             }
-
-            session.State = State.Executed;
-
-            // only delete old directories if successful
-            this.DeleteOldPayloadDirectories();
+            catch (Exception ex)
+            {
+                this.log.Fatal("Unhandled exception on endpoint " + this.settings.Uri + " thread.", ex);
+                throw;
+            }
         }
 
         void WriteResponse(ISession session, string s)
