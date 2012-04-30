@@ -208,9 +208,10 @@ namespace Pushbaby.Server
                 {
                     Directory.Delete(d.Item1, true);
                 }
-                catch (UnauthorizedAccessException)
+                catch (UnauthorizedAccessException ex)
                 {
-                    // try again next time
+                    // just log and try again next time
+                    this.log.Warn("Ignoring UnauthorizedAccessException on cleanup.", ex);
                 }
             }
         }
