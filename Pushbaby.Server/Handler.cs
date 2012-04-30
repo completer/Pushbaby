@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Ionic.Zip;
 using Pushbaby.Shared;
 using log4net;
@@ -198,10 +199,19 @@ namespace Pushbaby.Server
 
         void DeleteOldPayloadDirectories()
         {
+            Thread.Sleep(5000); // give iis a chance to finish with the old payload
+
             // leave the last 5 directories there for extra safety
             foreach (var d in this.GetPayloadDirectoriesInAscendingOrder().Reverse().Skip(this.settings.SnakeLength))
             {
-                Directory.Delete(d.Item1, true);
+                try
+                {
+                    Directory.Delete(d.Item1, true);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // try again next time
+                }
             }
         }
 
