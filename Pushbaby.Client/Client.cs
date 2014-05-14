@@ -85,6 +85,7 @@ namespace Pushbaby.Client
             var request = WebRequest.Create(destination);
             request.Method = "POST";
             request.Headers.Add("session", session);
+            request.Timeout = 500000; // 500 seconds
 
             var aes = CryptoUtility.GetAlgorithm(settings.SharedSecret, session);
 
